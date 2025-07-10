@@ -1,11 +1,12 @@
-// client/src/api/api.js - FINAL ROBUST VERSION
+// client/src/api/api.js - ROBUST FINAL VERSION
+
 import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'http://localhost:3001/api',
 });
 
-// This interceptor adds the token to every request.
+// Request interceptor to add the token (Unchanged)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -17,16 +18,17 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// This interceptor handles 401 errors and logs the user out.
+// --- MODIFIED: Response interceptor is now smarter ---
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // This is where the automatic logout happens
-      // We can add a more robust logout logic here later
+    // Check if the error is a 401 and that this is NOT the initial auth check
+    if (error.response && error.response.status === 401 && !error.config._isAuthCheck) {
+      // This is where the automatic logout happens for any API call *except* the first one.
       localStorage.removeItem('token');
       window.location = '/login';
     }
+    // For all other errors, or for the initial auth check, just pass the error along.
     return Promise.reject(error);
   }
 );

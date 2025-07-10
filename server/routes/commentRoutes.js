@@ -1,10 +1,13 @@
-// server/routes/commentRoutes.js - FINAL STABLE VERSION (with Nested Reply Fix)
+// /Users/jayeshdantha/Desktop/NovelVerse/server/routes/commentRoutes.js
 
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const Comment = require('../models/Comment');
 const mongoose = require('mongoose');
+const Post = require('../models/Post');
+const Notification = require('../models/Notification');
+const { getUser } = require('../socketManager');
 
 const populateUserDetails = 'username profilePicture isVerified';
 
@@ -26,8 +29,6 @@ const populateCommentsRecursively = (comments) => {
 };
 
 // ROUTE 1: GET ALL COMMENTS FOR A SINGLE POST
-// --- THE FIX IS HERE ---
-// The URL is changed back to /:postId to match what the frontend is calling.
 router.get('/:postId', async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.postId)) {
@@ -73,6 +74,57 @@ router.post('/', auth, async (req, res) => {
             await Comment.findByIdAndUpdate(parentId, { $push: { children: savedComment._id } });
         }
 
+        // --- NOTIFICATION LOGIC ---
+        const post = await Post.findById(postId);
+        const postAuthorId = post.user.toString();
+        const commenterId = req.user.id;
+
+        // Only notify if the commenter is not the post author
+        if (postAuthorId !== commenterId) {
+            const notification = new Notification({
+                recipient: postAuthorId,
+                sender: commenterId,
+                type: 'comment',
+                entityId: post._id,
+            });
+            await notification.save();
+
+            const recipientSocket = getUser(postAuthorId);
+            if (recipientSocket) {
+                req.io.to(recipientSocket.socketId).emit('getNotification', {
+                    senderName: req.user.username, // Assumes username is in the token payload
+                    type: 'comment',
+                });
+            }
+        }
+
+        // --- NOTIFICATION LOGIC FOR REPLIES ---
+        if (parentId) {
+            const parentComment = await Comment.findById(parentId);
+            const parentCommentAuthorId = parentComment.user.toString();
+
+            // Notify parent comment author, ONLY IF they are not the post author (to avoid double notifications)
+            // AND they are not replying to their own comment.
+            if (parentCommentAuthorId !== commenterId && parentCommentAuthorId !== postAuthorId) {
+                const replyNotification = new Notification({
+                    recipient: parentCommentAuthorId,
+                    sender: commenterId,
+                    type: 'reply',
+                    entityId: post._id,
+                });
+                await replyNotification.save();
+
+                const recipientSocket = getUser(parentCommentAuthorId);
+                if (recipientSocket) {
+                    req.io.to(recipientSocket.socketId).emit('getNotification', {
+                        senderName: req.user.username,
+                        type: 'reply',
+                    });
+                }
+            }
+        }
+        // --- END NOTIFICATION LOGIC ---
+
         // Populate the new comment with author details before sending back
         savedComment = await savedComment.populate('user', populateUserDetails);
         
@@ -95,6 +147,28 @@ router.put('/:id/like', auth, async (req, res) => {
 
         if (index === -1) {
             comment.likes.push(userId); // Like
+
+            // --- NOTIFICATION LOGIC FOR LIKING A COMMENT ---
+            const commentAuthorId = comment.user.toString();
+
+            // Only notify if the liker is not the comment author
+            if (commentAuthorId !== userId) {
+                const notification = new Notification({
+                    recipient: commentAuthorId,
+                    sender: userId,
+                    type: 'like_comment',
+                    entityId: comment.post, // Link back to the post containing the comment
+                });
+                await notification.save();
+
+                const recipientSocket = getUser(commentAuthorId);
+                if (recipientSocket) {
+                    req.io.to(recipientSocket.socketId).emit('getNotification', {
+                        senderName: req.user.username,
+                        type: 'like_comment',
+                    });
+                }
+            }
         } else {
             comment.likes.splice(index, 1); // Unlike
         }

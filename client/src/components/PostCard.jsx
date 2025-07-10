@@ -1,18 +1,18 @@
-// client/src/components/PostCard.jsx - MODERN & MINIMAL REDESIGN (with Verified Badge Fix)
+// client/src/components/PostCard.jsx - FINAL WORKING VERSION
 
 import React, { useState, useContext } from 'react';
-import { Paper, Box, Avatar, Typography, IconButton, Divider, CardActionArea } from '@mui/material';
+import { Paper, Box, Avatar, Typography, IconButton, Divider } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api/api';
+import { motion } from 'framer-motion';
 
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
-import VerifiedIcon from '@mui/icons-material/Verified'; // --- FIX: Import the badge icon ---
+import VerifiedIcon from '@mui/icons-material/Verified';
 
-// Helper function to format dates nicely
 const timeSince = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
     let interval = seconds / 31536000;
@@ -35,16 +35,10 @@ function PostCard({ post }) {
     
     const isLiked = currentUser ? likes.includes(currentUser.id) : false;
 
+    // This robust handleLike function is unchanged.
     const handleLike = async (e) => {
-        e.stopPropagation(); // Stop click from propagating to the parent card
+        e.stopPropagation(); 
         if (!currentUser) return alert("Please login to like posts.");
-        
-        if (isLiked) {
-            setLikes(likes.filter(id => id !== currentUser.id));
-        } else {
-            setLikes([...likes, currentUser.id]);
-        }
-        
         try {
             const res = await api.put(`/posts/${post._id}/like`);
             setLikes(res.data);
@@ -60,101 +54,115 @@ function PostCard({ post }) {
     if (!post || !post.user || !post.novel) {
         return null; 
     }
+
+    const cardVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            transition: { duration: 0.6, ease: "easeOut" }
+        }
+    };
   
   return (
-    <CardActionArea component="div" onClick={navigateToPost} sx={{ borderRadius: '16px' }}>
+    <motion.div
+        variants={cardVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.1 }}
+    >
       <Paper 
-        elevation={0} 
-        sx={{ 
-            mb: 2, 
-            borderRadius: '16px', 
-            overflow: 'hidden', 
-            border: '1px solid',
-            borderColor: 'divider'
-        }}
+          elevation={0} 
+          sx={{ 
+              mb: 2, 
+              borderRadius: '16px', 
+              overflow: 'hidden', 
+              border: '1px solid',
+              borderColor: 'divider'
+          }}
       >
         <Box sx={{ p: 2 }}>
-            {/* --- HEADER --- */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Avatar 
-                    component={Link} 
-                    to={`/profile/${post.user.username}`} 
-                    src={post.user.profilePicture}
-                    onClick={(e) => e.stopPropagation()} 
-                >
-                    {!post.user.profilePicture && post.user.username.charAt(0).toUpperCase()}
-                </Avatar>
-                <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Typography 
-                            variant="body1" 
-                            fontWeight="bold"
-                            component={Link}
-                            to={`/profile/${post.user.username}`}
-                            onClick={(e) => e.stopPropagation()}
-                            sx={{ textDecoration: 'none', color: 'inherit' }}
-                        >
-                            {post.user.username}
+            <Box onClick={navigateToPost} sx={{ cursor: 'pointer' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Avatar 
+                        component={Link} 
+                        to={`/profile/${post.user.username}`} 
+                        src={post.user.profilePicture}
+                        onClick={(e) => e.stopPropagation()} 
+                    >
+                        {!post.user.profilePicture && post.user.username.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography 
+                                variant="body1" 
+                                fontWeight="bold"
+                                component={Link}
+                                to={`/profile/${post.user.username}`}
+                                onClick={(e) => e.stopPropagation()}
+                                sx={{ textDecoration: 'none', color: 'inherit' }}
+                            >
+                                {post.user.username}
+                            </Typography>
+                            {post.user.isVerified && (
+                                <VerifiedIcon color="primary" sx={{ fontSize: '1.1rem' }} />
+                            )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {timeSince(post.createdAt)} ago
                         </Typography>
-                        
-                        {/* --- THE FIX IS HERE --- */}
-                        {post.user.isVerified && (
-                            <VerifiedIcon color="primary" sx={{ fontSize: '1.1rem' }} />
-                        )}
-                        {/* --- END OF FIX --- */}
                     </Box>
-
-                    <Typography variant="caption" color="text.secondary">
-                        {timeSince(post.createdAt)} ago
-                    </Typography>
                 </Box>
-            </Box>
-
-            {/* --- CONTENT --- */}
-            <Typography variant="body1" sx={{ my: 2, whiteSpace: 'pre-wrap' }}>
-                {post.content}
-            </Typography>
-
-            {/* --- NOVEL TAG --- */}
-            <Box 
-              component={Link} 
-              to={`/book/${post.novel.googleBooksId}`} 
-              onClick={(e) => e.stopPropagation()}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1,
-                p: '4px 12px',
-                borderRadius: '999px',
-                bgcolor: 'action.hover',
-                textDecoration: 'none',
-                color: 'text.primary',
-                '&:hover': { bgcolor: 'action.selected' }
-              }}
-            >
-                <BookmarkBorderIcon fontSize='small' />
-                <Typography variant="caption" fontWeight="bold">{post.novel.title}</Typography>
+                <Typography variant="body1" sx={{ my: 2, whiteSpace: 'pre-wrap' }}>
+                    {post.content}
+                </Typography>
+                <Box 
+                  component={Link} 
+                  to={`/book/${post.novel.googleBooksId}`} 
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: '4px 12px',
+                    borderRadius: '999px',
+                    bgcolor: 'action.hover',
+                    textDecoration: 'none',
+                    color: 'text.primary',
+                    '&:hover': { bgcolor: 'action.selected' }
+                  }}
+                >
+                    <BookmarkBorderIcon fontSize='small' />
+                    <Typography variant="caption" fontWeight="bold">{post.novel.title}</Typography>
+                </Box>
             </Box>
 
             <Divider sx={{ my: 1.5 }} />
             
-            {/* --- FOOTER / ACTIONS --- */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <IconButton onClick={handleLike} size="small">
-                    {isLiked ? <FavoriteIcon sx={{color: '#F44336'}}/> : <FavoriteBorderIcon />}
-                </IconButton>
+                {/* --- THE FINAL, RELIABLE FIX & ANIMATION --- */}
+                <motion.div whileTap={{ scale: 1.2 }}>
+                    <IconButton onClick={handleLike} size="small">
+                        {isLiked ? (
+                            <FavoriteIcon sx={{ color: 'red' }} />
+                        ) : (
+                            <FavoriteBorderIcon />
+                        )}
+                    </IconButton>
+                </motion.div>
+                {/* --- END OF FIX --- */}
+                
                 <Typography variant="body2" color="text.secondary" sx={{mr: 2}}>{likes.length > 0 ? likes.length : ''}</Typography>
 
-                <IconButton size="small">
+                <IconButton size="small" onClick={navigateToPost}>
                     <ChatBubbleOutlineIcon />
                 </IconButton>
                 <Typography variant="body2" color="text.secondary">{post.commentCount > 0 ? post.commentCount : ''}</Typography>
             </Box>
         </Box>
       </Paper>
-    </CardActionArea>
+    </motion.div>
   );
 }
 
 export default PostCard;
-

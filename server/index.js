@@ -1,7 +1,11 @@
 const http = require('http');
 const { Server } = require('socket.io');
+const passport = require('passport');
+const session = require('express-session');
 
 require('dotenv').config();
+require('./config/passport')(passport);
+
 const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
@@ -27,6 +31,18 @@ const io = new Server(server, { cors: { origin: "http://localhost:5173", methods
 // --- Middleware (Unchanged) ---
 app.use(cors());
 app.use(express.json());
+
+app.use(
+  session({
+    secret: 'keyboard cat',
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use((req, res, next) => {
   req.io = io;

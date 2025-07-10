@@ -2,6 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
+const passport = require('passport');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -242,6 +243,36 @@ router.put('/heartbeat', authMiddleware, async (req, res) => {
 });
 
 
+
+// @route   GET /api/users/auth/google
+// @desc    Auth with Google
+// @access  Public
+router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+// @route   GET /api/users/auth/google/callback
+// @desc    Google auth callback
+// @access  Public
+router.get(
+  '/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    const payload = {
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+      },
+    };
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: '5h' },
+      (err, token) => {
+        if (err) throw err;
+        res.redirect(`http://localhost:5173/auth/success?token=${token}`);
+      }
+    );
+  }
+);
 
 // @route   PUT /api/users/:id/follow
 // @desc    Follow or unfollow a user

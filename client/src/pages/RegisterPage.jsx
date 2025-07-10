@@ -1,18 +1,15 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Container, Box, Typography, TextField, Button, Grid, Link } from '@mui/material';
+import { Box, Typography, TextField, Button, Grid, Link, Paper, Divider } from '@mui/material';
 import api from '../api/api';
 import { AuthContext } from '../context/AuthContext';
+import AuthLayout from '../components/layouts/AuthLayout';
+import GoogleIcon from '@mui/icons-material/Google';
 
 function RegisterPage() {
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,42 +19,60 @@ function RegisterPage() {
     e.preventDefault();
     try {
       const response = await api.post('/users/register', formData);
-      login(response.data.token); // Log the user in immediately after registration
-      navigate('/'); // Redirect to homepage
-    } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
-      console.error(err);
+      login(response.data.token);
+      navigate('/');
+    } catch (error) {
+      console.error('Registration failed:', error.response?.data?.message || 'An error occurred');
     }
+  };
+  
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:3001/api/users/auth/google';
   };
 
   return (
-    <Container maxWidth="xs">
-      <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Typography component="h1" variant="h5">
-          Sign Up
-        </Typography>
-        {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+    <AuthLayout>
+      <Paper
+        elevation={12}
+        sx={{
+          p: 4,
+          borderRadius: 4,
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <Box sx={{ mb: 3, textAlign: 'center' }}>
+          <Typography component="h1" variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
+            Create Your Account
+          </Typography>
+          <Typography sx={{ color: 'grey.400' }}>
+            Join the NovelVerse community.
+          </Typography>
+        </Box>
+        <Box component="form" onSubmit={handleSubmit}>
           <TextField
             margin="normal"
             required
             fullWidth
-            id="username"
             label="Username"
             name="username"
             autoComplete="username"
             autoFocus
             onChange={handleChange}
+            InputLabelProps={{ sx: { color: 'grey.400' } }}
+            sx={{ input: { color: 'white' } }}
           />
           <TextField
             margin="normal"
             required
             fullWidth
-            id="email"
             label="Email Address"
             name="email"
             autoComplete="email"
             onChange={handleChange}
+            InputLabelProps={{ sx: { color: 'grey.400' } }}
+            sx={{ input: { color: 'white' } }}
           />
           <TextField
             margin="normal"
@@ -66,28 +81,39 @@ function RegisterPage() {
             name="password"
             label="Password"
             type="password"
-            id="password"
             autoComplete="new-password"
             onChange={handleChange}
+            InputLabelProps={{ sx: { color: 'grey.400' } }}
+            sx={{ input: { color: 'white' } }}
           />
           <Button
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 3, mb: 2 }}
+            sx={{ mt: 3, mb: 2, py: 1.5 }}
           >
             Sign Up
           </Button>
-          <Grid container justifyContent="flex-end">
+          <Divider sx={{ my: 2, color: 'grey.500' }}>OR</Divider>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleLogin}
+            sx={{ color: 'white', borderColor: 'grey.600', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255, 255, 255, 0.1)' } }}
+          >
+            Sign up with Google
+          </Button>
+          <Grid container justifyContent="center" sx={{ mt: 3 }}>
             <Grid item>
-              <Link component={RouterLink} to="/login" variant="body2">
-                Already have an account? Sign in
+              <Link component={RouterLink} to="/login" variant="body2" sx={{ color: 'grey.400' }}>
+                {"Already have an account? Sign In"}
               </Link>
             </Grid>
           </Grid>
         </Box>
-      </Box>
-    </Container>
+      </Paper>
+    </AuthLayout>
   );
 }
 

@@ -1,6 +1,8 @@
+// client/src/components/Conversation.jsx
+
 import React, { useState, useEffect } from 'react';
 import { Box, Avatar, Typography, Badge, styled, Tooltip } from '@mui/material';
-import VerifiedIcon from '@mui/icons-material/Verified'; // Import the icon
+import VerifiedIcon from '@mui/icons-material/Verified';
 import api from '../api/api';
 import { format } from 'timeago.js';
 
@@ -12,14 +14,14 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
   },
 }));
 
-const Conversation = ({ conversation, currentUser, isSelected, isOnline }) => {
+// --- FIX #1: Added isPending prop ---
+const Conversation = ({ conversation, currentUser, isSelected, isOnline, isPending }) => {
   const [friend, setFriend] = useState(null);
 
   useEffect(() => {
-    const friendId = conversation.members.find((memberId) => memberId !== currentUser.id);
+    const friendId = conversation.members.find((memberId) => memberId !== currentUser._id);
     const getFriend = async () => {
       try {
-        // The API already sends the isVerified status, so no backend change is needed
         const res = await api.get(`/users?userId=${friendId}`);
         setFriend(res.data);
       } catch (err) {
@@ -41,7 +43,6 @@ const Conversation = ({ conversation, currentUser, isSelected, isOnline }) => {
       '&:hover': { backgroundColor: 'action.hover' },
     }}>
 
-      {/* Item 1: Avatar with Online Badge */}
       <StyledBadge
         overlap="circular"
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
@@ -51,7 +52,6 @@ const Conversation = ({ conversation, currentUser, isSelected, isOnline }) => {
         <Avatar src={friend?.profilePicture} sx={{ width: 56, height: 56 }} />
       </StyledBadge>
 
-      {/* Item 2: Text block */}
       <Box sx={{ flexGrow: 1, minWidth: 0 }}> 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Typography 
@@ -60,26 +60,32 @@ const Conversation = ({ conversation, currentUser, isSelected, isOnline }) => {
             sx={{ fontWeight: conversation.hasUnread ? '700' : '600', color: conversation.hasUnread ? 'text.primary' : 'text.secondary' }}>
             {friend ? friend.username : "Loading..."}
           </Typography>
-          {/* --- ADDED: Logic to display the badge --- */}
           {friend?.isVerified && (
             <Tooltip title="Verified Account">
               <VerifiedIcon color="primary" sx={{ fontSize: '1.1rem' }} />
             </Tooltip>
           )}
         </Box>
-        <Typography 
-          variant="body2" 
-          noWrap 
-          sx={{ fontWeight: conversation.hasUnread ? 'bold' : 'normal', color: conversation.hasUnread ? 'text.primary' : 'text.secondary' }}>
-          {conversation.lastMessage ? `${conversation.lastMessage.text}` : "No messages yet"}
-          {' · '}
-          {conversation.lastMessage ? format(conversation.lastMessage.createdAt) : ''}
-        </Typography>
+        
+        {/* --- FIX #2: Conditionally show "Pending" status --- */}
+        {isPending ? (
+          <Typography variant="body2" noWrap sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
+            Request pending
+          </Typography>
+        ) : (
+          <Typography 
+            variant="body2" 
+            noWrap 
+            sx={{ fontWeight: conversation.hasUnread ? 'bold' : 'normal', color: conversation.hasUnread ? 'text.primary' : 'text.secondary' }}>
+            {conversation.lastMessage ? `${conversation.lastMessage.text}` : "No messages yet"}
+            {' · '}
+            {conversation.lastMessage ? format(conversation.lastMessage.createdAt) : ''}
+          </Typography>
+        )}
       </Box>
 
-      {/* Item 3: The Unread Dot */}
       <Box>
-        {conversation.hasUnread && (
+        {!isPending && conversation.hasUnread && (
             <Box sx={{
               height: 12,
               width: 12,

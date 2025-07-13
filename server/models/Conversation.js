@@ -1,12 +1,28 @@
 // server/models/Conversation.js
 
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
-const ConversationSchema = new Schema(
+const ConversationSchema = new mongoose.Schema(
   {
     members: {
-      type: [String], // An array of user IDs
+      type: Array,
+    },
+    // --- NEW FIELD ---
+    requesterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    // --- END NEW FIELD ---
+    lastMessage: {
+      text: String,
+      sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      seen: { type: Boolean, default: false },
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected'],
+      default: 'pending',
     },
   },
   { timestamps: true }

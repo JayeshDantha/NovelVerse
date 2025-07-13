@@ -8,6 +8,8 @@ const User = require('../models/User');
 const Comment = require('../models/Comment');
 const Post = require('../models/Post');
 const authMiddleware = require('../middleware/authMiddleware');
+const Notification = require('../models/Notification');
+const { getUser } = require('../socketManager');
 
 
 // --- ADDED FOR CHAT FEATURE: Get a user by ID or Username ---
@@ -272,6 +274,26 @@ router.put('/:id/follow', authMiddleware, async (req, res) => {
       targetUser.followers.push(currentUserId);
       await currentUser.save();
       await targetUser.save();
+
+      // --- NOTIFICATION LOGIC ---
+      const newNotification = new Notification({
+        recipient: targetUserId,
+        sender: currentUserId,
+        type: 'follow',
+        entityId: currentUserId, // For a follow, the entity is the user who followed.
+      });
+      await newNotification.save();
+
+      // Send real-time notification if the user is online
+      const recipientSocket = getUser(targetUserId);
+      if (recipientSocket) {
+        req.io.to(recipientSocket.socketId).emit('getNotification', {
+          senderName: currentUser.username,
+          type: 'follow',
+        });
+      }
+      // --- END NOTIFICATION LOGIC ---
+
       res.status(200).json({ message: "User followed successfully." });
     }
   } catch (error) {

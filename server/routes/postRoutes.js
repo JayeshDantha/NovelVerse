@@ -9,6 +9,8 @@ const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const Novel = require('../models/Novel');
 const mongoose = require('mongoose');
+const Notification = require('../models/Notification');
+const { getUser } = require('../socketManager');
 
 // --- HELPER FUNCTION TO ADD THE FIX IN ONE PLACE ---
 // This function adds 'isVerified' to every user population call.
@@ -125,11 +127,39 @@ router.put('/:id/like', auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
+
     const userId = req.user.id;
+    const postAuthorId = post.user.toString();
+
     const index = post.likes.indexOf(userId);
+
     if (index === -1) {
+      // User is liking the post
       post.likes.push(userId);
+
+      // --- NOTIFICATION LOGIC ---
+      // Only send a notification if the user is not liking their own post
+      if (postAuthorId !== userId) {
+        const newNotification = new Notification({
+          recipient: postAuthorId,
+          sender: userId,
+          type: 'like',
+          entityId: post._id,
+        });
+        await newNotification.save();
+
+        // Send real-time notification if the user is online
+        const recipientSocket = getUser(postAuthorId);
+        if (recipientSocket) {
+          req.io.to(recipientSocket.socketId).emit('getNotification', {
+            senderName: req.user.username, // Assumes username is in the token payload
+            type: 'like',
+          });
+        }
+      }
+      // --- END NOTIFICATION LOGIC ---
     } else {
+      // User is unliking the post
       post.likes.splice(index, 1);
     }
     await post.save();

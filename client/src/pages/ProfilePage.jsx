@@ -1,10 +1,11 @@
-// client/src/pages/ProfilePage.jsx - FINAL MERGED VERSION
+// client/src/pages/ProfilePage.jsx - FINAL MERGED VERSION (Corrected)
 
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container, Typography, Box, Avatar, Button, Paper, Tabs, Tab, CircularProgress, Divider,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Tooltip
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Tooltip,
+  Snackbar, Alert
 } from '@mui/material';
 import { CakeOutlined, CalendarTodayOutlined } from '@mui/icons-material';
 import VerifiedIcon from '@mui/icons-material/Verified';
@@ -14,11 +15,10 @@ import 'react-image-crop/dist/ReactCrop.css';
 import api from '../api/api';
 import PostCard from '../components/PostCard';
 import { AuthContext } from '../context/AuthContext';
-// --- UPDATED IMPORTS ---
 import BookshelfCard from '../components/BookshelfCard';
 import ProgressUpdateModal from '../components/ProgressUpdateModal';
 
-// Helper component for Tab Panels (Unchanged)
+// Helper component for Tab Panels
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
   return (
@@ -33,7 +33,6 @@ function ProfilePage() {
   const { user: currentUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Your existing state is preserved
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -47,12 +46,11 @@ function ProfilePage() {
   const [aspect, setAspect] = useState(1 / 1);
   const [imageType, setImageType] = useState('profilePicture');
   const imgRef = useRef(null);
-
-  // --- ADDED: State for the new progress modal ---
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [selectedShelfItem, setSelectedShelfItem] = useState(null);
+  
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
 
-  // Your data fetching logic is preserved
   const fetchProfileData = async () => {
     try {
       const [profileRes, bookshelfRes] = await Promise.all([
@@ -62,7 +60,8 @@ function ProfilePage() {
       setProfile(profileRes.data);
       setBookshelf(bookshelfRes.data);
       if(profileRes.data.user && currentUser){
-        const amIFollowing = profileRes.data.user.followers?.some(follower => follower._id === currentUser.id);
+        // --- THIS CHECK ALSO NEEDS TO BE CORRECTED ---
+        const amIFollowing = profileRes.data.user.followers?.some(follower => follower._id === currentUser._id);
         setIsFollowing(amIFollowing);
       }
     } catch (err) {
@@ -73,11 +72,19 @@ function ProfilePage() {
   };
 
   useEffect(() => {
-    setLoading(true);
-    fetchProfileData();
-  }, [username]);
+    if (username && currentUser) {
+        setLoading(true);
+        fetchProfileData();
+    }
+  }, [username, currentUser]);
 
-  // --- ADDED: Handlers for the progress modal ---
+  const handleCloseNotification = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setNotification({ ...notification, open: false });
+  };
+
   const handleOpenProgressModal = (shelfItem) => {
     setSelectedShelfItem(shelfItem);
     setProgressModalOpen(true);
@@ -89,28 +96,35 @@ function ProfilePage() {
   const handleSaveProgress = async (progressData) => {
     try {
       await api.put('/books/bookshelf/progress', progressData);
-      // Refresh the profile data to show the updated progress
       fetchProfileData();
     } catch (error) {
       console.error("Failed to save progress", error);
     }
   };
 
-  // All your other handlers are preserved
   const handleMessage = async () => {
     if (!profile?.user?._id || !currentUser) return;
     try {
-      await api.post('/conversations', { senderId: currentUser.id, receiverId: profile.user._id });
+      // --- THIS CHECK ALSO NEEDS TO BE CORRECTED ---
+      await api.post('/conversations', { senderId: currentUser._id, receiverId: profile.user._id });
       navigate('/chat');
-    } catch (err) { console.error("Failed to start conversation", err); }
+    } catch (err) {
+      if (err.response && err.response.status === 403) {
+        setNotification({ open: true, message: err.response.data.message, severity: 'error' });
+      } else {
+        console.error("Failed to start conversation", err);
+        setNotification({ open: true, message: 'Could not start conversation.', severity: 'error' });
+      }
+    }
   };
+
   const handleFollow = async () => {
     if (!profile?.user?._id) return;
     try {
       setIsFollowing(!isFollowing);
       await api.put(`/users/${profile.user._id}/follow`);
       fetchProfileData();
-    } catch (error) { console.error('Failed to follow user', error); fetchProfileData(); }
+    } catch (error) { console.error('Failed to follow user', error); setIsFollowing(!isFollowing); }
   };
   const handleTabChange = (event, newValue) => { setTabIndex(newValue); };
   const handleOpen = () => { setFormData({ bio: profile.user.bio || '', location: profile.user.location || '' }); setOpen(true); };
@@ -174,7 +188,10 @@ function ProfilePage() {
   if (loading) return <CircularProgress sx={{ display: 'block', margin: 'auto', mt: 4 }} />;
   if (!profile) return <Typography>User not found.</Typography>;
 
-  const isOwnProfile = currentUser && currentUser.id === profile.user._id;
+  // --- THIS IS THE FIX ---
+  // We now compare `currentUser._id` to `profile.user._id`
+  const isOwnProfile = currentUser && currentUser._id === profile.user._id;
+
   const wantToReadBooks = bookshelf.filter(item => item.status === 'want_to_read');
   const readingBooks = bookshelf.filter(item => item.status === 'reading');
   const readBooks = bookshelf.filter(item => item.status === 'read');
@@ -182,7 +199,6 @@ function ProfilePage() {
   return (
     <Container maxWidth="md">
       <Paper elevation={2} sx={{ my: 4, borderRadius: '16px', overflow: 'hidden' }}>
-        {/* Profile Header (Unchanged) */}
         <Box>
             <Box sx={{ height: '200px', bgcolor: 'primary.light', backgroundImage: `url(${profile.user.coverPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
             <Box sx={{ p: { xs: 2, sm: 3 }, position: 'relative' }}>
@@ -215,12 +231,11 @@ function ProfilePage() {
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
                     <Typography variant="body2"><Box component="span" fontWeight="bold">{profile.user.following?.length || 0}</Box> Following</Typography>
-                    <Typography variant="body2"><Box component="span" fontWeight="bold">{profile.user.followers?.length || 0}</Box> Followers</Typography>
+                    <Typography variant="body2"><Box component="span"fontWeight="bold">{profile.user.followers?.length || 0}</Box> Followers</Typography>
                 </Box>
             </Box>
         </Box>
         
-        {/* Tabs Section (Unchanged) */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 1 }}>
           <Tabs value={tabIndex} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
             <Tab label={`Posts (${profile.posts?.length || 0})`} />
@@ -230,7 +245,6 @@ function ProfilePage() {
           </Tabs>
         </Box>
 
-        {/* --- UPDATED: Tab Panels now use the new BookshelfCard --- */}
         <Box sx={{ p: { xs: 1, sm: 2 } }}>
             <TabPanel value={tabIndex} index={0}>
                 {profile.posts?.length > 0 ? ( profile.posts.map(post => <PostCard key={post._id} post={post} />) ) : ( <Typography color="text.secondary" sx={{textAlign: 'center', p:3}}>This user has no posts yet.</Typography>)}
@@ -253,7 +267,6 @@ function ProfilePage() {
         </Box>
       </Paper>
       
-      {/* Edit Profile Dialog (Unchanged) */}
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>Edit Your Profile</DialogTitle>
         <DialogContent>
@@ -272,7 +285,6 @@ function ProfilePage() {
         </DialogActions>
       </Dialog>
 
-      {/* --- ADDED: The new Progress Update Modal --- */}
       {selectedShelfItem && (
         <ProgressUpdateModal
           open={progressModalOpen}
@@ -281,6 +293,17 @@ function ProfilePage() {
           onSave={handleSaveProgress}
         />
       )}
+      
+      <Snackbar 
+        open={notification.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }} variant="filled">
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

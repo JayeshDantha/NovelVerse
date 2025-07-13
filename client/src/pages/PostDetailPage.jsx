@@ -20,11 +20,7 @@ function PostDetailPage() {
 
   const fetchData = async () => {
     try {
-      // setLoading(true) should only be here for initial load
       const postRes = await api.get(`/posts/${postId}`);
-      
-      // --- THIS IS THE FIX ---
-      // We now call the correct /api/comments/ endpoint
       const commentsRes = await api.get(`/comments/${postId}`);
 
       setPost(postRes.data);
@@ -54,21 +50,27 @@ function PostDetailPage() {
   };
 
   useEffect(() => {
-    setLoading(true); // Set loading true only on initial mount
+    setLoading(true);
     fetchData();
   }, [postId]);
 
+  // --- THIS FUNCTION IS THE ONLY PART THAT HAS CHANGED ---
   const handleCommentSubmit = async (commentContent, parentId = null) => {
     if (!user) return alert('Please log in to comment.'); 
     
     try {
-      const body = { content: commentContent };
-      if (parentId) {
-        body.parentComment = parentId;
-      }
+      // 1. We now include the postId in the body of the request.
+      const body = { 
+        content: commentContent, 
+        postId: postId,
+        parentId: parentId || null // Ensure we use parentId to match backend
+      };
       
-      await api.post(`/comments/${postId}`, body); 
-      fetchData(); // Refresh all comments to show the new one
+      // 2. We now send the request to /comments/ instead of /comments/:postId
+      await api.post('/comments', body); 
+      
+      // Refresh all data to show the new comment
+      fetchData(); 
     } catch (err) {
       console.error('Failed to post comment', err);
     }

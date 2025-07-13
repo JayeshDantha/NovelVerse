@@ -5,10 +5,13 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
+const searchRoutes = require('./routes/searchRoutes'); 
 
 // --- ADDED: Models needed for our socket logic ---
 const Message = require('./models/Message');
 const Conversation = require('./models/Conversation');
+const { addNewUser, removeUser, getUser, getOnlineUsers } = require('./socketManager');
+const { startScheduleNotifier } = require('./jobs/scheduleNotifier');
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Successfully connected to MongoDB Atlas!'))
@@ -17,9 +20,18 @@ mongoose.connect(process.env.MONGODB_URI)
 const app = express();
 const PORT = 3001;
 
+// --- SERVER INITIALIZATION (Moved Up) ---
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] } });
+
 // --- Middleware (Unchanged) ---
 app.use(cors());
 app.use(express.json());
+
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // --- Import Routes (Unchanged) ---
 const novelRoutes = require('./routes/novelRoutes');
@@ -30,6 +42,8 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const bookRoutes = require('./routes/bookRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const scheduleRoute = require("./routes/schedule");
 
 
 // --- Use Routes (Unchanged) ---
@@ -41,6 +55,9 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use("/api/schedule", scheduleRoute);
+app.use('/api/search', searchRoutes);
 
 
 app.get('/', (req, res) => res.send('Welcome to the NovelVerse API!'));
@@ -52,18 +69,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-
-// --- REAL-TIME CHAT LOGIC (Unchanged) ---
-let onlineUsers = [];
-const addNewUser = (userId, socketId) => { !onlineUsers.some((user) => user.userId === userId) && onlineUsers.push({ userId, socketId }); };
-const removeUser = (socketId) => { onlineUsers = onlineUsers.filter((user) => user.socketId !== socketId); };
-const getUser = (userId) => { return onlineUsers.find((user) => user.userId === userId); };
-
-
-// --- SERVER INITIALIZATION (Unchanged) ---
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] } });
-
 // --- UPDATED SOCKET.IO CONNECTION LOGIC ---
 io.on("connection", (socket) => {
   console.log(`[SERVER LOG] ==> A user connected. Socket ID: ${socket.id}`);
@@ -73,9 +78,9 @@ io.on("connection", (socket) => {
   socket.on("newUser", (userId) => {
     console.log(`[SERVER LOG] 'newUser' event received for User ID: ${userId}`); 
     addNewUser(userId, socket.id);
-    console.log(`[SERVER LOG] 'getOnlineUsers' event emitted. Online users:`, onlineUsers.map(u=>u.userId)); 
-    console.log("Online users:", onlineUsers);
-    io.emit("getOnlineUsers", onlineUsers);
+    console.log(`[SERVER LOG] 'getOnlineUsers' event emitted. Online users:`, getOnlineUsers().map(u=>u.userId)); 
+    console.log("Online users:", getOnlineUsers());
+    io.emit("getOnlineUsers", getOnlineUsers());
   });
 
   // Event when a user sends a message (Your existing code)
@@ -124,9 +129,12 @@ io.on("connection", (socket) => {
     console.log(`[SERVER LOG] A user disconnected. Socket ID: ${socket.id}`);
     console.log("A user has disconnected.");
     removeUser(socket.id);
-    console.log(`[SERVER LOG] 'getOnlineUsers' event emitted after disconnect. Online users:`, onlineUsers.map(u=>u.userId));
-    io.emit("getOnlineUsers", onlineUsers);
+    console.log(`[SERVER LOG] 'getOnlineUsers' event emitted after disconnect. Online users:`, getOnlineUsers().map(u=>u.userId));
+    io.emit("getOnlineUsers", getOnlineUsers());
   });
 });
 
 server.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
+
+// Start the cron job for sending schedule notifications
+startScheduleNotifier(io);

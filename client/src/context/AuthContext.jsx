@@ -49,6 +49,9 @@ export const AuthProvider = ({ children }) => {
     };
 
     setLoading(true); // Set loading to true every time the token changes
+    if (!token) {
+      setLoading(false);
+    }
     fetchUser();
   }, [token]);
 

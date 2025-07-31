@@ -53,7 +53,7 @@ function RegisterPage() {
     try {
       const response = await api.post('/users/register', formData);
       login(response.data.token); // Log the user in immediately after registration
-      navigate('/'); // Redirect to homepage
+      navigate('/login'); // Redirect to homepage
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
       console.error(err);

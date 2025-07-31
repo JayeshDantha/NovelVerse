@@ -8,6 +8,9 @@ import CommentForm from '../components/CommentForm';
 import Comment from '../components/Comment';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api/api';
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3001');
 
 function PostDetailPage() {
   const { postId } = useParams();
@@ -25,21 +28,7 @@ function PostDetailPage() {
 
       setPost(postRes.data);
 
-      const comments = commentsRes.data;
-      const commentsById = {};
-      comments.forEach(c => {
-        commentsById[c._id] = { ...c, children: [] };
-      });
-
-      const tree = [];
-      comments.forEach(c => {
-        if (c.parentComment && commentsById[c.parentComment]) {
-          commentsById[c.parentComment].children.push(commentsById[c._id]);
-        } else {
-          tree.push(commentsById[c._id]);
-        }
-      });
-      setCommentTree(tree);
+      setCommentTree(commentsRes.data);
 
     } catch (err) {
       setError('Could not fetch post details.');
@@ -52,25 +41,79 @@ function PostDetailPage() {
   useEffect(() => {
     setLoading(true);
     fetchData();
+
+    socket.emit('join post room', postId);
+
+    socket.on('new comment', (newComment) => {
+      setCommentTree(prevTree => [newComment, ...prevTree]);
+    });
+
+    socket.on('new reply', (newReply) => {
+      setCommentTree(prevTree => {
+        const newTree = [...prevTree];
+        const findAndAddReply = (comments) => {
+          for (let i = 0; i < comments.length; i++) {
+            if (comments[i]._id === newReply.parentComment) {
+              if (!comments[i].children) {
+                comments[i].children = [];
+              }
+              comments[i].children.push(newReply);
+              return true;
+            }
+            if (comments[i].children) {
+              if (findAndAddReply(comments[i].children)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+        findAndAddReply(newTree);
+        return newTree;
+      });
+    });
+
+    socket.on('comment updated', (updatedComment) => {
+      setCommentTree(prevTree => {
+        const newTree = [...prevTree];
+        const findAndUpdate = (comments) => {
+          for (let i = 0; i < comments.length; i++) {
+            if (comments[i]._id === updatedComment._id) {
+              comments[i].likes = updatedComment.likes;
+              return true;
+            }
+            if (comments[i].children) {
+              if (findAndUpdate(comments[i].children)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+        findAndUpdate(newTree);
+        return newTree;
+      });
+    });
+
+    return () => {
+      socket.emit('leave post room', postId);
+      socket.off('new comment');
+      socket.off('comment updated');
+    };
   }, [postId]);
 
   // --- THIS FUNCTION IS THE ONLY PART THAT HAS CHANGED ---
   const handleCommentSubmit = async (commentContent, parentId = null) => {
-    if (!user) return alert('Please log in to comment.'); 
-    
+    if (!user) return alert('Please log in to comment.');
+
     try {
-      // 1. We now include the postId in the body of the request.
-      const body = { 
-        content: commentContent, 
+      const body = {
+        content: commentContent,
         postId: postId,
-        parentId: parentId || null // Ensure we use parentId to match backend
+        parentId: parentId || null
       };
-      
-      // 2. We now send the request to /comments/ instead of /comments/:postId
-      const res = await api.post('/comments', body); 
-      
-      // Refresh all data to show the new comment
-      setCommentTree(res.data);
+      await api.post('/comments', body);
+      window.location.reload();
     } catch (err) {
       console.error('Failed to post comment', err);
     }

@@ -129,6 +129,16 @@ io.on("connection", (socket) => {
   // --- END OF ADDITION ---
 
   // Event when a user disconnects (Your existing code)
+  socket.on('join post room', (postId) => {
+    socket.join(postId);
+    console.log(`A user joined room: ${postId}`);
+  });
+
+  socket.on('leave post room', (postId) => {
+    socket.leave(postId);
+    console.log(`A user left room: ${postId}`);
+  });
+
   socket.on("disconnect", () => {
     console.log(`[SERVER LOG] A user disconnected. Socket ID: ${socket.id}`);
     console.log("A user has disconnected.");

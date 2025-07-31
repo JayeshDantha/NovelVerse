@@ -28,6 +28,10 @@ const commentSchema = new Schema({
     ref: 'Comment', // This links a comment to another comment
     default: null // Defaults to null if it's a top-level comment
   },
+  children: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Comment'
+  }],
   createdAt: {
     type: Date,
     default: Date.now,

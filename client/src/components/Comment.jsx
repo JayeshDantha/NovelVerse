@@ -1,6 +1,6 @@
 // client/src/components/Comment.jsx - UPGRADED VERSION (with Verified Badge Fix)
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Box, Typography, Button, IconButton, Avatar, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import CommentForm from './CommentForm';
@@ -11,10 +11,27 @@ import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
 
 function Comment({ comment, onCommentSubmit }) {
-  const { user } = useContext(AuthContext);
+  const { user, socket } = useContext(AuthContext);
   const [showReplyForm, setShowReplyForm] = useState(false);
-  const [showReplies, setShowReplies] = useState(true);
+  const [showReplies, setShowReplies] = useState(false);
+  const [replies, setReplies] = useState([]);
   const [likes, setLikes] = useState(comment.likes || []);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('new reply', (newReply) => {
+        if (newReply.parentComment === comment._id) {
+          setReplies(prevReplies => [...prevReplies, newReply]);
+        }
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('new reply');
+      }
+    };
+  }, [socket, comment._id]);
 
   const isLikedByMe = user ? likes.includes(user.id) : false;
   const amITheAuthor = user ? user.id === comment.user._id : false;
@@ -31,9 +48,13 @@ function Comment({ comment, onCommentSubmit }) {
     }
   };
 
-  const handleReplySubmit = (commentContent) => {
-    onCommentSubmit(commentContent, comment._id);
-    setShowReplyForm(false);
+  const handleReplySubmit = async (commentContent) => {
+    try {
+      await onCommentSubmit(commentContent, comment._id);
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to post reply', error);
+    }
   };
 
   if (!comment.user) return null;
@@ -94,11 +115,17 @@ function Comment({ comment, onCommentSubmit }) {
 
       {comment.children && comment.children.length > 0 && (
         <Box sx={{ pl: 2, ml: 2, borderLeft: '2px solid #e0e0e0' }}>
-          <Button size="small" onClick={() => setShowReplies(!showReplies)} sx={{ textTransform: 'none', mb: 1 }}>
+          <Button size="small" onClick={async () => {
+            if (!showReplies) {
+              const res = await api.get(`/comments/${comment._id}/replies`);
+              setReplies(res.data);
+            }
+            setShowReplies(!showReplies)
+          }} sx={{ textTransform: 'none', mb: 1 }}>
             {showReplies ? 'Hide replies' : `Show ${comment.children.length} replies`}
           </Button>
           <Collapse in={showReplies}>
-            {comment.children.map(childComment => (
+            {replies.map(childComment => (
               <Comment key={childComment._id} comment={childComment} onCommentSubmit={onCommentSubmit} />
             ))}
           </Collapse>

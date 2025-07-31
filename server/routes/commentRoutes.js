@@ -11,48 +11,44 @@ const { getSocketsForUser } = require('../socketManager');
 
 const populateUserDetails = 'username profilePicture isVerified';
 
-// This helper function handles the complex population for nested replies.
-const populateCommentsRecursively = (comments) => {
-    return Promise.all(comments.map(async (comment) => {
-        // Populate the author of the current comment
-        await comment.populate('user', populateUserDetails);
-        
-        // If there are children (replies), recursively populate them
-        if (comment.children && comment.children.length > 0) {
-            // Find the full comment documents for the children IDs
-            const populatedChildren = await Comment.find({ '_id': { $in: comment.children } });
-            // Recursively call the function for the children
-            comment.children = await populateCommentsRecursively(populatedChildren);
-        }
-        return comment;
-    }));
-};
-
-// ROUTE 1: GET ALL COMMENTS FOR A SINGLE POST
+// ROUTE 1: GET TOP-LEVEL COMMENTS FOR A POST
 router.get('/:postId', async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.postId)) {
             return res.status(400).json({ message: 'Invalid Post ID' });
         }
 
-        // Fetch only top-level comments (comments that are not replies)
-        const topLevelComments = await Comment.find({ 
-            post: req.params.postId,
-            parentComment: null 
-        }).sort({ createdAt: -1 });
-        
-        // Use our new recursive function to populate everything correctly
-        const populatedComments = await populateCommentsRecursively(topLevelComments);
+        const comments = await Comment.find({ post: req.params.postId, parentComment: null })
+            .populate('user', populateUserDetails)
+            .sort({ createdAt: -1 });
 
-        res.json(populatedComments);
+        res.json(comments);
     } catch (error) {
         console.error("Error fetching comments for post:", error);
         res.status(500).send('Server Error');
     }
 });
 
+// ROUTE 2: GET REPLIES FOR A COMMENT
+router.get('/:commentId/replies', async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.commentId)) {
+            return res.status(400).json({ message: 'Invalid Comment ID' });
+        }
 
-// ROUTE 2: POST A NEW COMMENT OR REPLY
+        const replies = await Comment.find({ parentComment: req.params.commentId })
+            .populate('user', populateUserDetails)
+            .sort({ createdAt: 'asc' });
+
+        res.json(replies);
+    } catch (error) {
+        console.error("Error fetching replies for comment:", error);
+        res.status(500).send('Server Error');
+    }
+});
+
+
+// ROUTE 3: POST A NEW COMMENT OR REPLY
 router.post('/', auth, async (req, res) => {
     try {
         const { content, postId, parentId } = req.body;
@@ -132,15 +128,12 @@ router.post('/', auth, async (req, res) => {
         // Populate the new comment with author details before sending back
         savedComment = await savedComment.populate('user', populateUserDetails);
         
-        // --- ADDED: Fetch and return the entire updated comment tree ---
-        const topLevelComments = await Comment.find({ 
-            post: postId,
-            parentComment: null 
-        }).sort({ createdAt: -1 });
-        
-        const populatedComments = await populateCommentsRecursively(topLevelComments);
-
-        res.status(201).json(populatedComments);
+        if (parentId) {
+            req.io.to(postId).emit('new reply', savedComment);
+        } else {
+            req.io.to(postId).emit('new comment', savedComment);
+        }
+        res.status(201).json(savedComment);
     } catch (error) {
         console.error("Error creating comment:", error);
         res.status(500).send('Server Error');
@@ -148,7 +141,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 
-// ROUTE 3: LIKE/UNLIKE A COMMENT
+// ROUTE 4: LIKE/UNLIKE A COMMENT
 router.put('/:id/like', auth, async (req, res) => {
     try {
         const comment = await Comment.findById(req.params.id);
@@ -188,6 +181,7 @@ router.put('/:id/like', auth, async (req, res) => {
         }
 
         await comment.save();
+        req.io.to(comment.post.toString()).emit('comment updated', comment);
         res.json(comment.likes);
     } catch (error) {
         console.error("Error liking comment:", error.message);

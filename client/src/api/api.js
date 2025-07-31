@@ -22,12 +22,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Check if the error is a 401 and that this is NOT the initial auth check
-    if (error.response && error.response.status === 401 && !error.config._isAuthCheck) {
-      // This is where the automatic logout happens for any API call *except* the first one.
-      localStorage.removeItem('token');
-      window.location = '/login';
-    }
     // For all other errors, or for the initial auth check, just pass the error along.
     return Promise.reject(error);
   }

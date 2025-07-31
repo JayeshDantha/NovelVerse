@@ -195,24 +195,51 @@ router.post('/login', async (req, res) => {
 // @route   PUT /api/users/profile
 // @desc    Update a user's own profile
 // @access  Private
-// YOUR EXISTING CODE - UNCHANGED
 router.put('/profile', authMiddleware, async (req, res) => {
-  const { bio, location, birthDate, profilePicture, coverPhoto } = req.body;
+  const { name, username, bio, location, website, birthDate, profilePicture, coverPhoto } = req.body;
   const profileFields = {};
+  if (name !== undefined) profileFields.name = name;
   if (bio !== undefined) profileFields.bio = bio;
   if (location !== undefined) profileFields.location = location;
+  if (website !== undefined) profileFields.website = website;
   if (birthDate !== undefined) profileFields.birthDate = birthDate;
   if (profilePicture !== undefined) profileFields.profilePicture = profilePicture;
   if (coverPhoto !== undefined) profileFields.coverPhoto = coverPhoto;
 
   try {
+    if (username) {
+      const userByUsername = await User.findOne({ username: username });
+      if (userByUsername && userByUsername._id.toString() !== req.user.id) {
+        return res.status(400).json({ message: 'Username is already taken' });
+      }
+      profileFields.username = username;
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { $set: profileFields },
       { new: true }
     ).select('-password');
 
-    res.json(user);
+    if (profileFields.username) {
+      const payload = {
+        user: {
+          id: user.id,
+          username: user.username
+        },
+      };
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET,
+        { expiresIn: '5h' },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ user, token });
+        }
+      );
+    } else {
+      res.json({ user });
+    }
 
   } catch (error) {
     console.error("Profile update error:", error);

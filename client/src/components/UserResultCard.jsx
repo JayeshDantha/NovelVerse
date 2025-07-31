@@ -9,9 +9,16 @@ const UserResultCard = ({ user }) => {
       component={Link} 
       to={`/profile/${user.username}`} 
       sx={{ 
-        py: 1.5, // Added more vertical padding for a spacious feel
-        borderBottom: '1px solid #eee', 
-        '&:hover': { backgroundColor: 'action.hover' } 
+        py: 2,
+        mb: 1.5,
+        borderRadius: '20px',
+        border: '1px solid #E0E0E0',
+        backgroundColor: 'white',
+        transition: 'box-shadow 0.3s ease-in-out',
+        '&:hover': { 
+            backgroundColor: 'white',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        } 
       }}
     >
       <ListItemAvatar>

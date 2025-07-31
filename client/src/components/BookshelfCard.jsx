@@ -39,14 +39,24 @@ const BookshelfCard = ({ shelfItem, onUpdateProgress, onShelfChange }) => {
   const canUpdate = typeof onUpdateProgress === 'function';
 
   return (
-    <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-      {/* The menu button is only shown if the onShelfChange prop is provided (i.e., it's your own shelf) */}
+    <Card sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        position: 'relative',
+        borderRadius: '20px',
+        border: '1px solid #E0E0E0',
+        transition: 'box-shadow 0.3s ease-in-out',
+        '&:hover': {
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        }
+    }}>
       {onShelfChange && (
         <>
           <IconButton
             aria-label="settings"
             onClick={handleClick}
-            sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'rgba(255,255,255,0.7)', p: 0.5 }}
+            sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.8)', p: 0.5 }}
           >
             <MoreVertIcon fontSize="small" />
           </IconButton>
@@ -64,13 +74,13 @@ const BookshelfCard = ({ shelfItem, onUpdateProgress, onShelfChange }) => {
 
       <CardMedia
         component={Link}
-        to={`/books/view/${novel.googleBooksId}`}
+        to={`/book/${novel.googleBooksId}`}
         image={novel.thumbnail || 'https://placehold.co/128x192/EEE/31343C?text=No+Image'}
-        sx={{ height: 190, backgroundSize: 'contain', bgcolor: '#f5f5f5' }}
+        sx={{ height: 200, backgroundSize: 'cover' }}
       />
-      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
+      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
         <Tooltip title={novel.title}>
-            <Typography gutterBottom variant="subtitle2" noWrap sx={{ fontWeight: 'bold' }}>
+            <Typography gutterBottom variant="subtitle1" noWrap sx={{ fontWeight: 'bold' }}>
             {novel.title}
             </Typography>
         </Tooltip>
@@ -82,7 +92,7 @@ const BookshelfCard = ({ shelfItem, onUpdateProgress, onShelfChange }) => {
               {pagesRead || 0} / {totalPages > 0 ? totalPages : '?'} pages
             </Typography>
             {canUpdate && (
-                <Button size="small" variant="outlined" onClick={(e) => { e.preventDefault(); onUpdateProgress(shelfItem); }} fullWidth sx={{ mt: 1 }}>
+                <Button size="small" variant="contained" onClick={(e) => { e.preventDefault(); onUpdateProgress(shelfItem); }} fullWidth sx={{ mt: 1, borderRadius: '999px' }}>
                   Update Progress
                 </Button>
             )}

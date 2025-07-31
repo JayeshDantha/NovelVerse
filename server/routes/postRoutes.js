@@ -10,7 +10,7 @@ const Comment = require('../models/Comment');
 const Novel = require('../models/Novel');
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
-const { getUser } = require('../socketManager');
+const { getSocketsForUser } = require('../socketManager');
 
 // --- HELPER FUNCTION TO ADD THE FIX IN ONE PLACE ---
 // This function adds 'isVerified' to every user population call.
@@ -149,12 +149,14 @@ router.put('/:id/like', auth, async (req, res) => {
         await newNotification.save();
 
         // Send real-time notification if the user is online
-        const recipientSocket = getUser(postAuthorId);
-        if (recipientSocket) {
-          req.io.to(recipientSocket.socketId).emit('getNotification', {
-            senderName: req.user.username, // Assumes username is in the token payload
-            type: 'like',
-          });
+        const recipientSockets = getSocketsForUser(postAuthorId);
+        if (recipientSockets.length > 0) {
+            recipientSockets.forEach(socket => {
+                req.io.to(socket.socketId).emit('getNotification', {
+                    senderName: req.user.username, // Assumes username is in the token payload
+                    type: 'like',
+                });
+            });
         }
       }
       // --- END NOTIFICATION LOGIC ---

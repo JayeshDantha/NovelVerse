@@ -1,7 +1,7 @@
 // client/src/pages/ProfilePage.jsx - FINAL MERGED VERSION (Corrected)
 
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container, Typography, Box, Avatar, Button, Paper, Tabs, Tab, CircularProgress, Divider,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Tooltip,
@@ -15,6 +15,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import api from '../api/api';
 import PostCard from '../components/PostCard';
 import { AuthContext } from '../context/AuthContext';
+import { useSnackbar } from 'notistack';
 import BookshelfCard from '../components/BookshelfCard';
 import ProgressUpdateModal from '../components/ProgressUpdateModal';
 
@@ -30,8 +31,10 @@ function TabPanel(props) {
 
 function ProfilePage() {
   const { username } = useParams();
-  const { user: currentUser } = useContext(AuthContext);
+  const { user: currentUser, login, updateUser } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { enqueueSnackbar } = useSnackbar();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +80,14 @@ function ProfilePage() {
         fetchProfileData();
     }
   }, [username, currentUser]);
+
+  useEffect(() => {
+    if (location.state?.message) {
+      enqueueSnackbar(location.state.message, { variant: 'success' });
+      // Clear the state so the message doesn't reappear on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, enqueueSnackbar]);
 
   const handleCloseNotification = (event, reason) => {
     if (reason === 'clickaway') {
@@ -127,7 +138,7 @@ function ProfilePage() {
     } catch (error) { console.error('Failed to follow user', error); setIsFollowing(!isFollowing); }
   };
   const handleTabChange = (event, newValue) => { setTabIndex(newValue); };
-  const handleOpen = () => { setFormData({ bio: profile.user.bio || '', location: profile.user.location || '' }); setOpen(true); };
+  const handleOpen = () => { setFormData({ name: profile.user.name || '', username: profile.user.username || '', bio: profile.user.bio || '', location: profile.user.location || '', website: profile.user.website || '' }); setOpen(true); };
   const handleClose = () => { setOpen(false); setImgSrc(''); };
   const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); };
   const onSelectFile = (e) => {
@@ -175,9 +186,18 @@ function ProfilePage() {
         const res = await api.post('/upload', uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
         finalFormData[imageType] = res.data.imageUrl;
       }
-      await api.put('/users/profile', finalFormData);
+      const res = await api.put('/users/profile', finalFormData);
+      if (res.data.token) {
+        login(res.data.token);
+      }
+      if (res.data.user) {
+        updateUser(res.data.user);
+      }
       handleClose();
       fetchProfileData();
+      if (finalFormData.username && finalFormData.username !== username) {
+        navigate(`/profile/${finalFormData.username}`);
+      }
     } catch (error) {
       console.error("Failed to update profile", error);
     } finally {
@@ -216,7 +236,7 @@ function ProfilePage() {
                     )}
                 </Box>
                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h5" fontWeight="bold">{profile.user.username}</Typography>
+                    <Typography variant="h5" fontWeight="bold">{profile.user.name || profile.user.username}</Typography>
                     {profile.user.isVerified && (
                       <Tooltip title="Verified Account">
                         <VerifiedIcon color="primary" sx={{ verticalAlign: 'middle' }} />
@@ -227,6 +247,7 @@ function ProfilePage() {
                 {profile.user.bio && <Typography variant="body1" sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>{profile.user.bio}</Typography>}
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2, color: 'text.secondary' }}>
                     {profile.user.location && <Typography variant='body2'>{profile.user.location}</Typography>}
+                    {profile.user.website && <Typography variant='body2' component="a" href={profile.user.website} target="_blank" rel="noopener noreferrer">{profile.user.website}</Typography>}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><CalendarTodayOutlined fontSize="small" /><Typography variant="body2">Joined {new Date(profile.user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</Typography></Box>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
@@ -276,8 +297,11 @@ function ProfilePage() {
               <Button variant="contained" component="label" fullWidth sx={{my: 1}}>Upload Cover Photo<input type="file" name="coverPhoto" hidden onChange={onSelectFile} accept="image/*" /></Button>
             </> )}
           <Divider sx={{my: 2}} />
+          <TextField margin="dense" name="name" label="Name" type="text" fullWidth variant="outlined" value={formData.name || ''} onChange={handleChange} />
+          <TextField margin="dense" name="username" label="Username" type="text" fullWidth variant="outlined" value={formData.username || ''} onChange={handleChange} />
           <TextField margin="dense" name="bio" label="Bio" type="text" fullWidth multiline rows={3} variant="outlined" value={formData.bio || ''} onChange={handleChange} />
           <TextField margin="dense" name="location" label="Location" type="text" fullWidth variant="outlined" value={formData.location || ''} onChange={handleChange} />
+          <TextField margin="dense" name="website" label="Website" type="text" fullWidth variant="outlined" value={formData.website || ''} onChange={handleChange} />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} disabled={uploading}>Cancel</Button>

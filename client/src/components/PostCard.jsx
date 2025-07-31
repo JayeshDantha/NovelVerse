@@ -7,10 +7,7 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../api/api';
 import { motion } from 'framer-motion';
 
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
+import { FaHeart, FaRegHeart, FaComment, FaBookmark } from 'react-icons/fa';
 import VerifiedIcon from '@mui/icons-material/Verified';
 
 const timeSince = (date) => {
@@ -75,10 +72,13 @@ function PostCard({ post }) {
           elevation={0} 
           sx={{ 
               mb: 2, 
-              borderRadius: '16px', 
+              borderRadius: '20px', 
               overflow: 'hidden', 
-              border: '1px solid',
-              borderColor: 'divider'
+              border: '1px solid #E0E0E0',
+              transition: 'box-shadow 0.3s ease-in-out',
+              '&:hover': {
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+              }
           }}
       >
         <Box sx={{ p: 2 }}>
@@ -113,7 +113,7 @@ function PostCard({ post }) {
                         </Typography>
                     </Box>
                 </Box>
-                <Typography variant="body1" sx={{ my: 2, whiteSpace: 'pre-wrap' }}>
+                <Typography variant="body1" sx={{ my: 2, whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#333' }}>
                     {post.content}
                 </Typography>
                 <Box 
@@ -124,39 +124,35 @@ function PostCard({ post }) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 1,
-                    p: '4px 12px',
+                    p: '6px 14px',
                     borderRadius: '999px',
-                    bgcolor: 'action.hover',
+                    bgcolor: '#F5F5F5',
                     textDecoration: 'none',
-                    color: 'text.primary',
-                    '&:hover': { bgcolor: 'action.selected' }
+                    color: '#555',
+                    transition: 'background-color 0.3s',
+                    '&:hover': { bgcolor: '#E0E0E0' }
                   }}
                 >
-                    <BookmarkBorderIcon fontSize='small' />
+                    <FaBookmark />
                     <Typography variant="caption" fontWeight="bold">{post.novel.title}</Typography>
                 </Box>
             </Box>
 
             <Divider sx={{ my: 1.5 }} />
             
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {/* --- THE FINAL, RELIABLE FIX & ANIMATION --- */}
-                <motion.div whileTap={{ scale: 1.2 }}>
-                    <IconButton onClick={handleLike} size="small">
-                        {isLiked ? (
-                            <FavoriteIcon sx={{ color: 'red' }} />
-                        ) : (
-                            <FavoriteBorderIcon />
-                        )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <motion.div whileTap={{ scale: 1.2 }} whileHover={{ scale: 1.1 }}>
+                    <IconButton onClick={handleLike} size="small" sx={{ color: isLiked ? '#E91E63' : 'inherit' }}>
+                        {isLiked ? <FaHeart /> : <FaRegHeart />}
                     </IconButton>
                 </motion.div>
-                {/* --- END OF FIX --- */}
-                
                 <Typography variant="body2" color="text.secondary" sx={{mr: 2}}>{likes.length > 0 ? likes.length : ''}</Typography>
 
-                <IconButton size="small" onClick={navigateToPost}>
-                    <ChatBubbleOutlineIcon />
-                </IconButton>
+                <motion.div whileTap={{ scale: 1.2 }} whileHover={{ scale: 1.1 }}>
+                    <IconButton size="small" onClick={navigateToPost}>
+                        <FaComment />
+                    </IconButton>
+                </motion.div>
                 <Typography variant="body2" color="text.secondary">{post.commentCount > 0 ? post.commentCount : ''}</Typography>
             </Box>
         </Box>

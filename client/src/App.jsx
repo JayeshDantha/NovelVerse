@@ -20,6 +20,7 @@ import NovelDetailPage from './pages/NovelDetailPage';
 import UserSearchPage from './pages/UserSearchPage';
 import SchedulePage from './pages/schedule/SchedulePage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
 import { AuthContext } from './context/AuthContext.jsx';
 
 // The ThemeProvider is needed for the useMediaQuery hook to work correctly.
@@ -118,6 +119,11 @@ function App() {
             <Route path="/profile/:username" element={
               <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
                 <ProtectedRoute><ProfilePage /></ProtectedRoute>
+              </motion.div>
+            }/>
+            <Route path="/settings" element={
+              <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+                <ProtectedRoute><SettingsPage /></ProtectedRoute>
               </motion.div>
             }/>
           </Routes>

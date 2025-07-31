@@ -15,7 +15,7 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 }));
 
 // --- FIX #1: Added isPending prop ---
-const Conversation = ({ conversation, currentUser, isSelected, isOnline, isPending }) => {
+const Conversation = ({ conversation, currentUser, isSelected, isOnline, isPending, hasUnread }) => {
   const [friend, setFriend] = useState(null);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ const Conversation = ({ conversation, currentUser, isSelected, isOnline, isPendi
           <Typography 
             variant="body1" 
             noWrap
-            sx={{ fontWeight: conversation.hasUnread ? '700' : '600', color: conversation.hasUnread ? 'text.primary' : 'text.secondary' }}>
+            sx={{ fontWeight: hasUnread ? '700' : '600', color: hasUnread ? 'text.primary' : 'text.secondary' }}>
             {friend ? friend.username : "Loading..."}
           </Typography>
           {friend?.isVerified && (
@@ -76,7 +76,7 @@ const Conversation = ({ conversation, currentUser, isSelected, isOnline, isPendi
           <Typography 
             variant="body2" 
             noWrap 
-            sx={{ fontWeight: conversation.hasUnread ? 'bold' : 'normal', color: conversation.hasUnread ? 'text.primary' : 'text.secondary' }}>
+            sx={{ fontWeight: hasUnread ? 'bold' : 'normal', color: hasUnread ? 'text.primary' : 'text.secondary' }}>
             {conversation.lastMessage ? `${conversation.lastMessage.text}` : "No messages yet"}
             {' · '}
             {conversation.lastMessage ? format(conversation.lastMessage.createdAt) : ''}
@@ -85,7 +85,7 @@ const Conversation = ({ conversation, currentUser, isSelected, isOnline, isPendi
       </Box>
 
       <Box>
-        {!isPending && conversation.hasUnread && (
+        {!isPending && hasUnread && (
             <Box sx={{
               height: 12,
               width: 12,

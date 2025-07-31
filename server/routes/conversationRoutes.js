@@ -139,5 +139,27 @@ router.put('/requests/reject/:conversationId', async (req, res) => {
     }
 });
 
+// Route 6: Get all conversation IDs where there are unread messages for a user
+router.get('/unread/:userId', async (req, res) => {
+    try {
+        const conversations = await Conversation.find({
+            members: { $in: [req.params.userId] },
+        }).select('_id');
+
+        const conversationIds = conversations.map(c => c._id);
+
+        const unreadConversations = await Message.distinct('conversationId', {
+            conversationId: { $in: conversationIds },
+            isRead: false,
+            senderId: { $ne: req.params.userId }
+        });
+
+        res.status(200).json(unreadConversations);
+    } catch (err) {
+        console.error("Failed to fetch unread conversation IDs", err);
+        res.status(500).json(err);
+    }
+});
+
 
 module.exports = router;

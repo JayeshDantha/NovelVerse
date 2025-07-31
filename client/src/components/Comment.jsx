@@ -1,27 +1,28 @@
 // client/src/components/Comment.jsx - UPGRADED VERSION (with Verified Badge Fix)
 
 import React, { useState, useContext } from 'react';
-import { Box, Typography, Button, IconButton, Avatar } from '@mui/material';
+import { Box, Typography, Button, IconButton, Avatar, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import CommentForm from './CommentForm';
 import { AuthContext } from '../context/AuthContext';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import VerifiedIcon from '@mui/icons-material/Verified'; // --- FIX: Import the badge icon ---
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
 
 function Comment({ comment, onCommentSubmit }) {
-  const { user } = useContext(AuthContext); // The currently logged-in user
+  const { user } = useContext(AuthContext);
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [showReplies, setShowReplies] = useState(true);
   const [likes, setLikes] = useState(comment.likes || []);
-  
+
   const isLikedByMe = user ? likes.includes(user.id) : false;
   const amITheAuthor = user ? user.id === comment.user._id : false;
 
   const handleLike = async (e) => {
     e.stopPropagation();
     if (!user) return alert('You must be logged in to like comments.');
-    
+
     try {
       const res = await api.put(`/comments/${comment._id}/like`);
       setLikes(res.data);
@@ -49,18 +50,22 @@ function Comment({ comment, onCommentSubmit }) {
             </IconButton>
           )}
 
-          <Box sx={{ bgcolor: amITheAuthor ? 'primary.main' : 'action.hover', color: amITheAuthor ? 'primary.contrastText' : 'text.primary', borderRadius: '16px', p: 1.5, maxWidth: '450px', wordWrap: 'break-word' }}>
+          <Box sx={{
+              bgcolor: amITheAuthor ? '#007aff' : '#e5e5ea',
+              color: amITheAuthor ? 'white' : 'black',
+              borderRadius: '18px',
+              p: '8px 12px',
+              maxWidth: '450px',
+              wordWrap: 'break-word',
+          }}>
             {!amITheAuthor && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                 <Typography variant="caption" component={Link} to={`/profile/${comment.user.username}`} sx={{ fontWeight: 'bold', textDecoration: 'none', color: 'inherit' }}>
                   {comment.user.username}
                 </Typography>
-                
-                {/* --- THE FIX IS HERE --- */}
                 {comment.user.isVerified && (
-                  <VerifiedIcon sx={{ fontSize: '0.9rem', color: amITheAuthor ? 'primary.contrastText' : 'primary.main' }} />
+                  <VerifiedIcon sx={{ fontSize: '0.9rem', color: '#007aff' }} />
                 )}
-                {/* --- END OF FIX --- */}
               </Box>
             )}
             <Typography variant="body2">{comment.content}</Typography>
@@ -68,30 +73,35 @@ function Comment({ comment, onCommentSubmit }) {
         </Box>
       </Box>
 
-      {/* Like and Reply buttons section */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: amITheAuthor ? 'flex-end' : 'flex-start', pl: amITheAuthor ? 0 : 7, pr: amITheAuthor ? 1 : 0 }}>
-        <IconButton onClick={handleLike} size="small">
-          {isLikedByMe ? <FavoriteIcon color="error" fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: amITheAuthor ? 'flex-end' : 'flex-start', pl: amITheAuthor ? 0 : 7, pr: amITheAuthor ? 1 : 0, mt: -0.5, mb: 1 }}>
+        <Typography variant="caption" color="text.secondary">
+          {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+        </Typography>
+        <IconButton onClick={handleLike} size="small" sx={{ color: isLikedByMe ? '#E91E63' : 'inherit' }}>
+          {isLikedByMe ? <FaHeart /> : <FaRegHeart />}
         </IconButton>
         <Typography variant="caption" color="text.secondary">{likes.length > 0 ? likes.length : ''}</Typography>
         {user && !amITheAuthor && (
-          <Button size="small" onClick={() => setShowReplyForm(!showReplyForm)} sx={{ textTransform: 'none' }}>
+          <Button size="small" onClick={() => setShowReplyForm(!showReplyForm)} sx={{ textTransform: 'none', fontWeight: 'bold' }}>
             {showReplyForm ? 'Cancel' : 'Reply'}
           </Button>
         )}
       </Box>
 
-      {/* Reply form section */}
       {showReplyForm && (
         <Box sx={{ pl: amITheAuthor ? 0 : 7 }}><CommentForm onCommentSubmit={handleReplySubmit} isReply={true} /></Box>
       )}
 
-      {/* Child comments (replies) section */}
       {comment.children && comment.children.length > 0 && (
-        <Box sx={{ pl: 4, mt: 1 }}>
-          {comment.children.map(childComment => (
-            <Comment key={childComment._id} comment={childComment} onCommentSubmit={onCommentSubmit} />
-          ))}
+        <Box sx={{ pl: 2, ml: 2, borderLeft: '2px solid #e0e0e0' }}>
+          <Button size="small" onClick={() => setShowReplies(!showReplies)} sx={{ textTransform: 'none', mb: 1 }}>
+            {showReplies ? 'Hide replies' : `Show ${comment.children.length} replies`}
+          </Button>
+          <Collapse in={showReplies}>
+            {comment.children.map(childComment => (
+              <Comment key={childComment._id} comment={childComment} onCommentSubmit={onCommentSubmit} />
+            ))}
+          </Collapse>
         </Box>
       )}
     </Box>

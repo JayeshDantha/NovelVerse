@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true); // Start as true
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [unreadConversations, setUnreadConversations] = useState(new Set());
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -29,6 +30,11 @@ export const AuthProvider = ({ children }) => {
           const res = await api.get(`/users?userId=${userId}`, { _isAuthCheck: true });
           
           setUser(res.data);
+
+          // --- ADDED: Fetch unread conversations ---
+          const unreadRes = await api.get(`/conversations/unread/${userId}`);
+          setUnreadConversations(new Set(unreadRes.data));
+
 
         } catch (error) {
           // If anything goes wrong (expired token, network error), just log out silently.
@@ -55,6 +61,20 @@ export const AuthProvider = ({ children }) => {
 
       newSocket.on('getOnlineUsers', (users) => setOnlineUsers(users.map(u => u.userId)));
       newSocket.on('connect', () => newSocket.emit('newUser', userIdToAnnounce));
+
+      // --- ADDED: Listen for new messages to update unread status ---
+      newSocket.on('getMessage', ({ conversationId }) => {
+        setUnreadConversations(prev => new Set(prev).add(conversationId));
+      });
+
+      // --- ADDED: Listen for when messages are seen by the other user ---
+      newSocket.on('messagesSeen', ({ conversationId }) => {
+        setUnreadConversations(prev => {
+            const newUnread = new Set(prev);
+            newUnread.delete(conversationId);
+            return newUnread;
+        });
+      });
 
       const sendHeartbeat = async () => {
         try { await api.put('/users/heartbeat'); } 
@@ -84,9 +104,22 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setUnreadConversations(new Set());
   };
 
-  const contextValue = { user, token, login, logout, loading, socket, onlineUsers };
+  const markConversationAsRead = (conversationId) => {
+    setUnreadConversations(prev => {
+        const newUnread = new Set(prev);
+        newUnread.delete(conversationId);
+        return newUnread;
+    });
+  }
+
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+  }
+
+  const contextValue = { user, token, login, logout, loading, socket, onlineUsers, unreadConversations, markConversationAsRead, updateUser };
 
   return (
     <AuthContext.Provider value={contextValue}>

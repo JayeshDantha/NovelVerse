@@ -3,16 +3,19 @@
 let onlineUsers = [];
 
 const addNewUser = (userId, socketId) => {
-  !onlineUsers.some((user) => user.userId === userId) &&
+  // A user can have multiple connections (e.g. multiple tabs).
+  // We add a new entry for each connection, after ensuring it's not a duplicate socket ID.
+  if (!onlineUsers.some((user) => user.socketId === socketId)) {
     onlineUsers.push({ userId, socketId });
+  }
 };
 
 const removeUser = (socketId) => {
   onlineUsers = onlineUsers.filter((user) => user.socketId !== socketId);
 };
 
-const getUser = (userId) => {
-  return onlineUsers.find((user) => user.userId === userId);
+const getSocketsForUser = (userId) => {
+  return onlineUsers.filter((user) => user.userId === userId);
 };
 
 const getOnlineUsers = () => {
@@ -22,6 +25,6 @@ const getOnlineUsers = () => {
 module.exports = {
   addNewUser,
   removeUser,
-  getUser,
+  getSocketsForUser,
   getOnlineUsers,
 };

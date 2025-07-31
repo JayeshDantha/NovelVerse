@@ -10,7 +10,7 @@ const searchRoutes = require('./routes/searchRoutes');
 // --- ADDED: Models needed for our socket logic ---
 const Message = require('./models/Message');
 const Conversation = require('./models/Conversation');
-const { addNewUser, removeUser, getUser, getOnlineUsers } = require('./socketManager');
+const { addNewUser, removeUser, getSocketsForUser, getOnlineUsers } = require('./socketManager');
 const { startScheduleNotifier } = require('./jobs/scheduleNotifier');
 
 mongoose.connect(process.env.MONGODB_URI)
@@ -86,13 +86,15 @@ io.on("connection", (socket) => {
   // Event when a user sends a message (Your existing code)
   socket.on("sendMessage", ({ senderId, receiverId, text, conversationId }) => { 
     console.log(`[SERVER LOG] 'sendMessage' received from ${senderId} to ${receiverId}`);
-    const receiver = getUser(receiverId);
-    if (receiver) {
-      console.log(`[SERVER LOG] Receiver ${receiverId} is online. Emitting 'getMessage' to Socket ID: ${receiver.socketId}`);
-      io.to(receiver.socketId).emit("getMessage", {
-        senderId,
-        text,
-        conversationId,
+    const receiverSockets = getSocketsForUser(receiverId);
+    if (receiverSockets.length > 0) {
+      receiverSockets.forEach(receiver => {
+        console.log(`[SERVER LOG] Receiver ${receiverId} is online. Emitting 'getMessage' to Socket ID: ${receiver.socketId}`);
+        io.to(receiver.socketId).emit("getMessage", {
+          senderId,
+          text,
+          conversationId,
+        });
       });
       console.log(`Message sent from ${senderId} to ${receiverId}`);
     } else {
@@ -112,9 +114,11 @@ io.on("connection", (socket) => {
       const conversation = await Conversation.findById(conversationId);
       if (conversation) {
         const friendId = conversation.members.find(m => String(m) !== String(userId));
-        const friend = getUser(friendId);
-        if (friend) {
-          io.to(friend.socketId).emit("messagesSeen", { conversationId });
+        const friendSockets = getSocketsForUser(friendId);
+        if (friendSockets.length > 0) {
+          friendSockets.forEach(friend => {
+            io.to(friend.socketId).emit("messagesSeen", { conversationId });
+          });
           console.log(`[SERVER LOG] 'markAsRead': Notified ${friendId} that messages in convo ${conversationId} were seen.`);
         }
       }

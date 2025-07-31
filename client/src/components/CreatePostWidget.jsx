@@ -83,13 +83,16 @@ function CreatePostWidget({ onPostSuccess }) {
 
   return (
     <Paper
-      elevation={isExpanded ? 4 : 2}
+      elevation={0}
       sx={{
         p: 2,
         mb: 4,
-        borderRadius: '16px',
+        borderRadius: '20px',
+        border: '1px solid #E0E0E0',
         transition: 'box-shadow 0.3s ease-in-out',
-        boxShadow: isExpanded ? '0px 4px 20px rgba(0, 0, 0, 0.1)' : '0px 2px 4px rgba(0, 0, 0, 0.08)',
+        '&:hover': {
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        }
       }}
     >
       <Box component="form" onSubmit={handleSubmit}>
@@ -103,8 +106,8 @@ function CreatePostWidget({ onPostSuccess }) {
           onFocus={() => setIsExpanded(true)}
           sx={{ 
             '& .MuiOutlinedInput-root': {
-                borderRadius: '999px',
-                backgroundColor: 'action.hover',
+                borderRadius: '20px',
+                backgroundColor: '#F5F5F5',
                 '& fieldset': {
                     border: 'none',
                 },
@@ -156,8 +159,8 @@ function CreatePostWidget({ onPostSuccess }) {
                 </Select>
             </FormControl>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
-              <Button onClick={handleCancel} sx={{color: 'text.secondary'}}>Cancel</Button>
-              <Button type="submit" variant="contained">Post</Button>
+              <Button onClick={handleCancel} sx={{color: 'text.secondary', fontWeight: 'bold'}}>Cancel</Button>
+              <Button type="submit" variant="contained" sx={{ borderRadius: '999px', px: 3 }}>Post</Button>
             </Box>
           </Box>
         </Collapse>

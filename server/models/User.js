@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    default: ''
+  },
   username: {
     type: String,
     required: true,
@@ -34,6 +38,10 @@ const UserSchema = new mongoose.Schema({
     maxlength: 160
   },
   location: {
+    type: String,
+    default: ''
+  },
+  website: {
     type: String,
     default: ''
   },

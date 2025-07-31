@@ -7,7 +7,7 @@ const Comment = require('../models/Comment');
 const mongoose = require('mongoose');
 const Post = require('../models/Post');
 const Notification = require('../models/Notification');
-const { getUser } = require('../socketManager');
+const { getSocketsForUser } = require('../socketManager');
 
 const populateUserDetails = 'username profilePicture isVerified';
 
@@ -38,7 +38,7 @@ router.get('/:postId', async (req, res) => {
         // Fetch only top-level comments (comments that are not replies)
         const topLevelComments = await Comment.find({ 
             post: req.params.postId,
-            parent: null 
+            parentComment: null 
         }).sort({ createdAt: -1 });
         
         // Use our new recursive function to populate everything correctly
@@ -64,7 +64,7 @@ router.post('/', auth, async (req, res) => {
             content,
             post: postId,
             user: req.user.id,
-            parent: parentId || null // Will be null for a top-level comment
+            parentComment: parentId || null // Will be null for a top-level comment
         });
 
         let savedComment = await newComment.save();
@@ -89,11 +89,13 @@ router.post('/', auth, async (req, res) => {
             });
             await notification.save();
 
-            const recipientSocket = getUser(postAuthorId);
-            if (recipientSocket) {
-                req.io.to(recipientSocket.socketId).emit('getNotification', {
-                    senderName: req.user.username, // Assumes username is in the token payload
-                    type: 'comment',
+            const recipientSockets = getSocketsForUser(postAuthorId);
+            if (recipientSockets.length > 0) {
+                recipientSockets.forEach(socket => {
+                    req.io.to(socket.socketId).emit('getNotification', {
+                        senderName: req.user.username, // Assumes username is in the token payload
+                        type: 'comment',
+                    });
                 });
             }
         }
@@ -114,11 +116,13 @@ router.post('/', auth, async (req, res) => {
                 });
                 await replyNotification.save();
 
-                const recipientSocket = getUser(parentCommentAuthorId);
-                if (recipientSocket) {
-                    req.io.to(recipientSocket.socketId).emit('getNotification', {
-                        senderName: req.user.username,
-                        type: 'reply',
+                const recipientSockets = getSocketsForUser(parentCommentAuthorId);
+                if (recipientSockets.length > 0) {
+                    recipientSockets.forEach(socket => {
+                        req.io.to(socket.socketId).emit('getNotification', {
+                            senderName: req.user.username,
+                            type: 'reply',
+                        });
                     });
                 }
             }
@@ -128,7 +132,15 @@ router.post('/', auth, async (req, res) => {
         // Populate the new comment with author details before sending back
         savedComment = await savedComment.populate('user', populateUserDetails);
         
-        res.status(201).json(savedComment);
+        // --- ADDED: Fetch and return the entire updated comment tree ---
+        const topLevelComments = await Comment.find({ 
+            post: postId,
+            parentComment: null 
+        }).sort({ createdAt: -1 });
+        
+        const populatedComments = await populateCommentsRecursively(topLevelComments);
+
+        res.status(201).json(populatedComments);
     } catch (error) {
         console.error("Error creating comment:", error);
         res.status(500).send('Server Error');
@@ -161,13 +173,15 @@ router.put('/:id/like', auth, async (req, res) => {
                 });
                 await notification.save();
 
-                const recipientSocket = getUser(commentAuthorId);
-                if (recipientSocket) {
-                    req.io.to(recipientSocket.socketId).emit('getNotification', {
+            const recipientSockets = getSocketsForUser(commentAuthorId);
+            if (recipientSockets.length > 0) {
+                recipientSockets.forEach(socket => {
+                    req.io.to(socket.socketId).emit('getNotification', {
                         senderName: req.user.username,
                         type: 'like_comment',
                     });
-                }
+                });
+            }
             }
         } else {
             comment.likes.splice(index, 1); // Unlike

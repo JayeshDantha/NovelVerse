@@ -67,10 +67,10 @@ function PostDetailPage() {
       };
       
       // 2. We now send the request to /comments/ instead of /comments/:postId
-      await api.post('/comments', body); 
+      const res = await api.post('/comments', body); 
       
       // Refresh all data to show the new comment
-      fetchData(); 
+      setCommentTree(res.data);
     } catch (err) {
       console.error('Failed to post comment', err);
     }

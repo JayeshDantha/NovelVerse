@@ -3,7 +3,6 @@ import { Paper, BottomNavigation, BottomNavigationAction } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
-// Icons
 import HomeIcon from '@mui/icons-material/Home';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import EventIcon from '@mui/icons-material/Event';
@@ -14,7 +13,6 @@ import ChatIcon from '@mui/icons-material/Chat';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BookOutlinedIcon from '@mui/icons-material/BookOutlined';
-
 
 function BottomNav() {
   const { user } = useContext(AuthContext);
@@ -37,7 +35,7 @@ function BottomNav() {
   }
 
   return (
-    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1200 }} elevation={3}>
+    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1200, borderTop: '1px solid #E0E0E0' }} elevation={0}>
       <BottomNavigation
         showLabels
         value={value}

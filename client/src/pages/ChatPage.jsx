@@ -66,7 +66,7 @@ const ChatHeader = ({ currentChat, currentUser, isOnline, onBack }) => {
 };
 
 const ChatPage = () => {
-  const { user: currentUser, socket, onlineUsers } = useContext(AuthContext);
+  const { user: currentUser, socket, onlineUsers, markConversationAsRead, unreadConversations } = useContext(AuthContext);
   const [conversations, setConversations] = useState([]);
   const [requests, setRequests] = useState([]);
   const [tabIndex, setTabIndex] = useState(0);
@@ -141,13 +141,11 @@ const ChatPage = () => {
     } catch (err) { console.error('Failed to save message to DB', err); }
   };
   
-  const handleConversationClick = async (conv) => {
+  const handleConversationClick = (conv) => {
     setCurrentChat(conv);
-    if (conv.hasUnread) {
-      try {
-        await api.put(`/messages/read/${conv._id}`);
-        setConversations(prev => prev.map(c => c._id === conv._id ? { ...c, hasUnread: false } : c));
-      } catch (err) { console.error("Failed to mark messages as read", err); }
+    if (unreadConversations.has(conv._id)) {
+      markConversationAsRead(conv._id);
+      socket.emit('markAsRead', { conversationId: conv._id, userId: currentUser._id });
     }
   };
 
@@ -186,7 +184,7 @@ const ChatPage = () => {
          tabIndex === 0 ? (
           conversations.length > 0 ? conversations.map(conv => (
             <Box key={conv._id} onClick={() => handleConversationClick(conv)}>
-              <Conversation conversation={conv} currentUser={currentUser} isSelected={currentChat?._id === conv._id} isOnline={onlineUsers.includes(conv.members.find(m => m !== currentUser._id))} />
+              <Conversation conversation={conv} currentUser={currentUser} isSelected={currentChat?._id === conv._id} isOnline={onlineUsers.includes(conv.members.find(m => m !== currentUser._id))} hasUnread={unreadConversations.has(conv._id)} />
             </Box>
           )) : <Typography sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>No conversations yet.</Typography>
         ) : (

@@ -39,6 +39,7 @@ function LoginPage() {
     email: '',
     password: '',
   });
+  const [error, setError] = useState('');
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -57,6 +58,7 @@ function LoginPage() {
       login(response.data.token);
       navigate('/');
     } catch (error) {
+      setError(error.response?.data?.message || 'An error occurred');
       console.error('Login failed:', error.response?.data?.message || 'An error occurred');
     }
   };
@@ -103,6 +105,11 @@ function LoginPage() {
                 autoComplete="current-password"
                 onChange={handleChange}
               />
+              {error && (
+                <Typography color="error" variant="body2" sx={{ mt: 2 }}>
+                  {error}
+                </Typography>
+              )}
               <Button
                 type="submit"
                 fullWidth

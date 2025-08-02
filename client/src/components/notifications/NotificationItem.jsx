@@ -8,6 +8,9 @@ import { format } from 'timeago.js';
 
 // Helper to generate notification text and link
 const getNotificationDetails = (notification) => {
+  if (!notification || !notification.sender) {
+    return { text: 'New notification', link: '/' };
+  }
   const senderUsername = notification.sender.username;
   switch (notification.type) {
     case 'like':
@@ -77,7 +80,7 @@ const NotificationItem = ({ notification, onClick, onDelete }) => {
         py: 1.5,
       }}
     >
-      <Avatar src={notification.sender.profilePicture} sx={{ mr: 1.5, width: 40, height: 40, mt: 0.5 }} />
+      <Avatar src={notification.sender?.profilePicture} sx={{ mr: 1.5, width: 40, height: 40, mt: 0.5 }} />
       <Box sx={{ flexGrow: 1, mr: 1 }}>
         <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
           {text}

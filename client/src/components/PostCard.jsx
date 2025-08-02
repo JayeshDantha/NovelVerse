@@ -8,6 +8,7 @@ import api from '../api/api';
 import { motion } from 'framer-motion';
 
 import { FaHeart, FaRegHeart, FaComment, FaBookmark } from 'react-icons/fa';
+import { MdDelete } from 'react-icons/md';
 import VerifiedIcon from '@mui/icons-material/Verified';
 
 const timeSince = (date) => {
@@ -46,6 +47,18 @@ function PostCard({ post }) {
     
     const navigateToPost = () => {
         navigate(`/post/${post._id}`);
+    };
+
+    const handleDelete = async (e) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to delete this post?')) {
+            try {
+                await api.delete(`/posts/${post._id}`);
+                window.location.reload();
+            } catch (error) {
+                console.error("Failed to delete post", error);
+            }
+        }
     };
 
     if (!post || !post.user || !post.novel) {
@@ -154,6 +167,14 @@ function PostCard({ post }) {
                     </IconButton>
                 </motion.div>
                 <Typography variant="body2" color="text.secondary">{post.commentCount > 0 ? post.commentCount : ''}</Typography>
+
+                {currentUser && currentUser._id === post.user._id && (
+                    <motion.div whileTap={{ scale: 1.2 }} whileHover={{ scale: 1.1 }}>
+                        <IconButton size="small" onClick={handleDelete} sx={{ ml: 'auto' }}>
+                            <MdDelete />
+                        </IconButton>
+                    </motion.div>
+                )}
             </Box>
         </Box>
       </Paper>

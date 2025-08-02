@@ -185,6 +185,39 @@ router.put('/:id/like', auth, async (req, res) => {
         res.json(comment.likes);
     } catch (error) {
         console.error("Error liking comment:", error.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ROUTE 5: DELETE A COMMENT
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const comment = await Comment.findById(req.params.id);
+
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
+        // Check if the user owns the comment
+        if (comment.user.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'User not authorized' });
+        }
+
+        // Recursively delete all replies
+        const deleteReplies = async (commentId) => {
+            const replies = await Comment.find({ parentComment: commentId });
+            for (const reply of replies) {
+                await deleteReplies(reply._id);
+                await reply.deleteOne();
+            }
+        };
+
+        await deleteReplies(req.params.id);
+        await comment.deleteOne();
+
+        res.json({ message: 'Comment removed' });
+    } catch (error) {
+        console.error(error.message);
         res.status(500).send('Server Error');
     }
 });

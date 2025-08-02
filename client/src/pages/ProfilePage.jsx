@@ -218,20 +218,20 @@ function ProfilePage() {
 
   return (
     <Container maxWidth="md">
-      <Paper elevation={2} sx={{ my: 4, borderRadius: '16px', overflow: 'hidden' }}>
+      <Paper elevation={2} sx={{ my: { xs: 0, sm: 4 }, borderRadius: { xs: 0, sm: '16px' }, overflow: 'hidden' }}>
         <Box>
-            <Box sx={{ height: '200px', bgcolor: 'primary.light', backgroundImage: `url(${profile.user.coverPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            <Box sx={{ height: { xs: 120, sm: 200 }, bgcolor: 'primary.light', backgroundImage: `url(${profile.user.coverPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
             <Box sx={{ p: { xs: 2, sm: 3 }, position: 'relative' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mt: '-75px' }}>
-                    <Avatar src={profile.user.profilePicture} sx={{ width: 140, height: 140, border: '4px solid white' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mt: { xs: '-50px', sm: '-75px' } }}>
+                    <Avatar src={profile.user.profilePicture} sx={{ width: { xs: 100, sm: 140 }, height: { xs: 100, sm: 140 }, border: '4px solid white' }}>
                         {!profile.user.profilePicture && profile.user.username.charAt(0).toUpperCase()}
                     </Avatar>
                     {isOwnProfile ? (
-                        <Button onClick={handleOpen} variant="outlined" sx={{ borderRadius: '20px', fontWeight: 'bold' }}>Edit Profile</Button>
+                        <Button onClick={handleOpen} variant="outlined" sx={{ borderRadius: '20px', fontWeight: 'bold', mt: { xs: 1, sm: 0 } }}>Edit Profile</Button>
                     ) : (
-                        <Box>
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mt: { xs: 1, sm: 0 } }}>
                           <Button onClick={handleFollow} variant={isFollowing ? "outlined" : "contained"} sx={{ borderRadius: '20px' }}>{isFollowing ? "Following" : "Follow"}</Button>
-                          <Button variant="contained" onClick={handleMessage} sx={{ ml: 1, borderRadius: '20px' }}>Message</Button>
+                          <Button variant="contained" onClick={handleMessage} sx={{ borderRadius: '20px' }}>Message</Button>
                         </Box>
                     )}
                 </Box>
@@ -245,7 +245,7 @@ function ProfilePage() {
                 </Box>
                 <Typography variant="body2" color="text.secondary">@{profile.user.username}</Typography>
                 {profile.user.bio && <Typography variant="body1" sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>{profile.user.bio}</Typography>}
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2, color: 'text.secondary' }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 2 }, mt: 2, color: 'text.secondary' }}>
                     {profile.user.location && <Typography variant='body2'>{profile.user.location}</Typography>}
                     {profile.user.website && <Typography variant='body2' component="a" href={profile.user.website} target="_blank" rel="noopener noreferrer">{profile.user.website}</Typography>}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><CalendarTodayOutlined fontSize="small" /><Typography variant="body2">Joined {new Date(profile.user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</Typography></Box>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Paper, BottomNavigation, BottomNavigationAction } from '@mui/material';
+import { Paper, BottomNavigation, BottomNavigationAction, Badge } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -15,7 +15,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BookOutlinedIcon from '@mui/icons-material/BookOutlined';
 
 function BottomNav() {
-  const { user } = useContext(AuthContext);
+  const { user, unreadConversations } = useContext(AuthContext);
   const location = useLocation();
   const [value, setValue] = useState(0);
 
@@ -46,7 +46,11 @@ function BottomNav() {
         <BottomNavigationAction label="Home" icon={value === 0 ? <HomeIcon /> : <HomeOutlinedIcon />} component={Link} to="/" />
         <BottomNavigationAction label="Schedule" icon={value === 1 ? <EventIcon /> : <EventOutlinedIcon />} component={Link} to="/schedule" />
         <BottomNavigationAction label="Create" icon={value === 2 ? <AddCircleIcon /> : <AddCircleOutlineIcon />} component={Link} to="/create-post" />
-        <BottomNavigationAction label="Chat" icon={value === 3 ? <ChatIcon /> : <ChatBubbleOutlineIcon />} component={Link} to="/chat" />
+        <BottomNavigationAction label="Chat" icon={
+          <Badge color="error" variant="dot" invisible={unreadConversations.size === 0}>
+            {value === 3 ? <ChatIcon /> : <ChatBubbleOutlineIcon />}
+          </Badge>
+        } component={Link} to="/chat" />
         <BottomNavigationAction label="Novels" icon={value === 4 ? <MenuBookIcon /> : <BookOutlinedIcon />} component={Link} to="/search" />
       </BottomNavigation>
     </Paper>

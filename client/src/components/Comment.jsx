@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import CommentForm from './CommentForm';
 import { AuthContext } from '../context/AuthContext';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import { MdDelete } from 'react-icons/md';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
@@ -33,8 +34,8 @@ function Comment({ comment, onCommentSubmit }) {
     };
   }, [socket, comment._id]);
 
-  const isLikedByMe = user ? likes.includes(user.id) : false;
-  const amITheAuthor = user ? user.id === comment.user._id : false;
+  const isLikedByMe = user ? likes.includes(user._id) : false;
+  const amITheAuthor = user ? user._id === comment.user._id : false;
 
   const handleLike = async (e) => {
     e.stopPropagation();
@@ -54,6 +55,17 @@ function Comment({ comment, onCommentSubmit }) {
       window.location.reload();
     } catch (error) {
       console.error('Failed to post reply', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this comment?')) {
+      try {
+        await api.delete(`/comments/${comment._id}`);
+        window.location.reload();
+      } catch (error) {
+        console.error('Failed to delete comment', error);
+      }
     }
   };
 
@@ -106,6 +118,11 @@ function Comment({ comment, onCommentSubmit }) {
           <Button size="small" onClick={() => setShowReplyForm(!showReplyForm)} sx={{ textTransform: 'none', fontWeight: 'bold' }}>
             {showReplyForm ? 'Cancel' : 'Reply'}
           </Button>
+        )}
+        {user && amITheAuthor && (
+          <IconButton size="small" onClick={handleDelete}>
+            <MdDelete />
+          </IconButton>
         )}
       </Box>
 

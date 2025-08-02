@@ -172,4 +172,30 @@ router.put('/:id/like', auth, async (req, res) => {
   }
 });
 
+// ROUTE 7: DELETE A POST
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Check if the user owns the post
+    if (post.user.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    // Delete all comments associated with the post
+    await Comment.deleteMany({ post: req.params.id });
+
+    await post.deleteOne();
+
+    res.json({ message: 'Post removed' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

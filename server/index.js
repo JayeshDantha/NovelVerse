@@ -44,6 +44,7 @@ const conversationRoutes = require('./routes/conversationRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const scheduleRoute = require("./routes/schedule");
+const bookClubRoutes = require('./routes/bookClubRoutes');
 
 
 // --- Use Routes (Unchanged) ---
@@ -58,6 +59,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/api/schedule", scheduleRoute);
 app.use('/api/search', searchRoutes);
+app.use('/api/bookclubs', bookClubRoutes);
 
 
 app.get('/', (req, res) => res.send('Welcome to the NovelVerse API!'));

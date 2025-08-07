@@ -8,6 +8,26 @@ const Novel = require('../models/Novel');
 const BookshelfItem = require('../models/BookshelfItem');
 const User = require('../models/User');
 
+// @route   POST /api/books
+// @desc    Create a new book
+// @access  Private
+router.post('/', authMiddleware, async (req, res) => {
+  const { title, authors, description, thumbnail } = req.body;
+  try {
+    const newBook = new Novel({
+      title,
+      authors,
+      description,
+      thumbnail,
+    });
+    const book = await newBook.save();
+    res.json(book);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET /api/books/search?q=...
 router.get('/search', async (req, res) => {
   const query = req.query.q;

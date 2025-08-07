@@ -7,10 +7,12 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
+const User = require('../models/User');
 const Novel = require('../models/Novel');
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const { getSocketsForUser } = require('../socketManager');
+const { getPersonalizedFeed } = require('../controllers/feedController');
 
 // --- HELPER FUNCTION TO ADD THE FIX IN ONE PLACE ---
 // This function adds 'isVerified' to every user population call.
@@ -18,6 +20,36 @@ const populateUserDetails = 'username profilePicture isVerified';
 
 
 // ROUTE 1: GET ALL POSTS
+router.get('/feed', auth, getPersonalizedFeed);
+
+router.get('/following', auth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.id);
+    const followingIds = currentUser.following;
+
+    const posts = await Post.find({ user: { $in: followingIds } })
+      .sort({ createdAt: -1 })
+      .populate('user', populateUserDetails)
+      .populate('novel', 'title googleBooksId');
+
+    const postsWithCommentCount = await Promise.all(posts.map(async (post) => {
+        const commentCount = await Comment.countDocuments({ post: post._id });
+        return { 
+          ...post.toObject(),
+          id: post._id, 
+          commentCount,
+          user: post.user,
+          novel: post.novel
+        };
+    }));
+
+    res.json(postsWithCommentCount);
+  } catch (error) {
+    console.error("Error fetching following feed:", error.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const posts = await Post.find({})

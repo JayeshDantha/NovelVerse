@@ -13,6 +13,8 @@ import ChatIcon from '@mui/icons-material/Chat';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BookOutlinedIcon from '@mui/icons-material/BookOutlined';
+import GroupIcon from '@mui/icons-material/Group';
+import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 
 function BottomNav() {
   const { user, unreadConversations } = useContext(AuthContext);
@@ -21,13 +23,14 @@ function BottomNav() {
 
   useEffect(() => {
     const path = location.pathname;
-    // New Order: Home(0), Schedule(1), Create Post(2), Chat(3), Search Novels(4)
+    // New Order: Home(0), Schedule(1), Create Post(2), Chat(3), Book Clubs(4), Search Novels(5)
     if (path === '/') setValue(0);
     else if (path.startsWith('/schedule')) setValue(1);
     else if (path === '/create-post') setValue(2);
     else if (path === '/chat') setValue(3);
-    else if (path.startsWith('/search')) setValue(4);
-    else setValue(-1); 
+    else if (path.startsWith('/bookclubs')) setValue(4);
+    else if (path.startsWith('/search')) setValue(5);
+    else setValue(-1);
   }, [location]);
 
   if (!user) {
@@ -42,6 +45,12 @@ function BottomNav() {
         onChange={(event, newValue) => {
           setValue(newValue);
         }}
+        sx={{
+          "& .MuiBottomNavigationAction-root": {
+            minWidth: 0,
+            flex: 1,
+          },
+        }}
       >
         <BottomNavigationAction label="Home" icon={value === 0 ? <HomeIcon /> : <HomeOutlinedIcon />} component={Link} to="/" />
         <BottomNavigationAction label="Schedule" icon={value === 1 ? <EventIcon /> : <EventOutlinedIcon />} component={Link} to="/schedule" />
@@ -51,7 +60,8 @@ function BottomNav() {
             {value === 3 ? <ChatIcon /> : <ChatBubbleOutlineIcon />}
           </Badge>
         } component={Link} to="/chat" />
-        <BottomNavigationAction label="Novels" icon={value === 4 ? <MenuBookIcon /> : <BookOutlinedIcon />} component={Link} to="/search" />
+        <BottomNavigationAction label="Clubs" icon={value === 4 ? <GroupIcon /> : <GroupOutlinedIcon />} component={Link} to="/bookclubs" />
+        <BottomNavigationAction label="Novels" icon={value === 5 ? <MenuBookIcon /> : <BookOutlinedIcon />} component={Link} to="/search" />
       </BottomNavigation>
     </Paper>
   );

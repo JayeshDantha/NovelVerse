@@ -218,75 +218,77 @@ function ProfilePage() {
 
   return (
     <Container maxWidth="md">
-      <Paper elevation={2} sx={{ my: { xs: 0, sm: 4 }, borderRadius: { xs: 0, sm: '16px' }, overflow: 'hidden' }}>
-        <Box>
-            <Box sx={{ height: { xs: 120, sm: 200 }, bgcolor: 'primary.light', backgroundImage: `url(${profile.user.coverPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-            <Box sx={{ p: { xs: 2, sm: 3 }, position: 'relative' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mt: { xs: '-50px', sm: '-75px' } }}>
-                    <Avatar src={profile.user.profilePicture} sx={{ width: { xs: 100, sm: 140 }, height: { xs: 100, sm: 140 }, border: '4px solid white' }}>
-                        {!profile.user.profilePicture && profile.user.username.charAt(0).toUpperCase()}
-                    </Avatar>
-                    {isOwnProfile ? (
-                        <Button onClick={handleOpen} variant="outlined" sx={{ borderRadius: '20px', fontWeight: 'bold', mt: { xs: 1, sm: 0 } }}>Edit Profile</Button>
-                    ) : (
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mt: { xs: 1, sm: 0 } }}>
-                          <Button onClick={handleFollow} variant={isFollowing ? "outlined" : "contained"} sx={{ borderRadius: '20px' }}>{isFollowing ? "Following" : "Follow"}</Button>
-                          <Button variant="contained" onClick={handleMessage} sx={{ borderRadius: '20px' }}>Message</Button>
-                        </Box>
-                    )}
-                </Box>
-                 <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h5" fontWeight="bold">{profile.user.name || profile.user.username}</Typography>
-                    {profile.user.isVerified && (
-                      <Tooltip title="Verified Account">
-                        <VerifiedIcon color="primary" sx={{ verticalAlign: 'middle' }} />
-                      </Tooltip>
-                    )}
-                </Box>
-                <Typography variant="body2" color="text.secondary">@{profile.user.username}</Typography>
-                {profile.user.bio && <Typography variant="body1" sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>{profile.user.bio}</Typography>}
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 2 }, mt: 2, color: 'text.secondary' }}>
-                    {profile.user.location && <Typography variant='body2'>{profile.user.location}</Typography>}
-                    {profile.user.website && <Typography variant='body2' component="a" href={profile.user.website} target="_blank" rel="noopener noreferrer">{profile.user.website}</Typography>}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><CalendarTodayOutlined fontSize="small" /><Typography variant="body2">Joined {new Date(profile.user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</Typography></Box>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                    <Typography variant="body2"><Box component="span" fontWeight="bold">{profile.user.following?.length || 0}</Box> Following</Typography>
-                    <Typography variant="body2"><Box component="span"fontWeight="bold">{profile.user.followers?.length || 0}</Box> Followers</Typography>
-                </Box>
-            </Box>
-        </Box>
-        
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 1 }}>
-          <Tabs value={tabIndex} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
-            <Tab label={`Posts (${profile.posts?.length || 0})`} />
-            <Tab label={`Read (${readBooks.length})`} />
-            <Tab label={`Reading (${readingBooks.length})`} />
-            <Tab label={`Want to Read (${wantToReadBooks.length})`} />
-          </Tabs>
-        </Box>
+      <Box sx={{ my: 4 }}>
+        <Paper elevation={0} sx={{ borderRadius: '16px', overflow: 'hidden' }}>
+          <Box>
+              <Box sx={{ height: { xs: 120, sm: 200 }, bgcolor: 'primary.light', backgroundImage: `url(${profile.user.coverPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              <Box sx={{ p: { xs: 2, sm: 3 }, position: 'relative' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mt: { xs: '-50px', sm: '-75px' } }}>
+                      <Avatar src={profile.user.profilePicture} sx={{ width: { xs: 100, sm: 140 }, height: { xs: 100, sm: 140 }, border: '4px solid white' }}>
+                          {!profile.user.profilePicture && profile.user.username.charAt(0).toUpperCase()}
+                      </Avatar>
+                      {isOwnProfile ? (
+                          <Button onClick={handleOpen} variant="outlined">Edit Profile</Button>
+                      ) : (
+                          <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+                            <Button onClick={handleFollow} variant={isFollowing ? "outlined" : "contained"}>{isFollowing ? "Following" : "Follow"}</Button>
+                            <Button variant="contained" onClick={handleMessage}>Message</Button>
+                          </Box>
+                      )}
+                  </Box>
+                   <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="h5" fontWeight="bold">{profile.user.name || profile.user.username}</Typography>
+                      {profile.user.isVerified && (
+                        <Tooltip title="Verified Account">
+                          <VerifiedIcon color="primary" sx={{ verticalAlign: 'middle' }} />
+                        </Tooltip>
+                      )}
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">@{profile.user.username}</Typography>
+                  {profile.user.bio && <Typography variant="body1" sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>{profile.user.bio}</Typography>}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 2 }, mt: 2, color: 'text.secondary' }}>
+                      {profile.user.location && <Typography variant='body2'>{profile.user.location}</Typography>}
+                      {profile.user.website && <Typography variant='body2' component="a" href={profile.user.website} target="_blank" rel="noopener noreferrer">{profile.user.website}</Typography>}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><CalendarTodayOutlined fontSize="small" /><Typography variant="body2">Joined {new Date(profile.user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</Typography></Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                      <Typography variant="body2"><Box component="span" fontWeight="bold">{profile.user.following?.length || 0}</Box> Following</Typography>
+                      <Typography variant="body2"><Box component="span"fontWeight="bold">{profile.user.followers?.length || 0}</Box> Followers</Typography>
+                  </Box>
+              </Box>
+          </Box>
+          
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 1 }}>
+            <Tabs value={tabIndex} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
+              <Tab label={`Posts (${profile.posts?.length || 0})`} />
+              <Tab label={`Read (${readBooks.length})`} />
+              <Tab label={`Reading (${readingBooks.length})`} />
+              <Tab label={`Want to Read (${wantToReadBooks.length})`} />
+            </Tabs>
+          </Box>
 
-        <Box sx={{ p: { xs: 1, sm: 2 } }}>
-            <TabPanel value={tabIndex} index={0}>
-                {profile.posts?.length > 0 ? ( profile.posts.map(post => <PostCard key={post._id} post={post} />) ) : ( <Typography color="text.secondary" sx={{textAlign: 'center', p:3}}>This user has no posts yet.</Typography>)}
-            </TabPanel>
-            <TabPanel value={tabIndex} index={1}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
-                    {readBooks.map(item => <BookshelfCard key={item._id} shelfItem={item} onShelfChange={isOwnProfile ? fetchProfileData : null} />)}
-                </Box>
-            </TabPanel>
-            <TabPanel value={tabIndex} index={2}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
-                    {readingBooks.map(item => <BookshelfCard key={item._id} shelfItem={item} onUpdateProgress={isOwnProfile ? handleOpenProgressModal : null} onShelfChange={isOwnProfile ? fetchProfileData : null} />)}
-                </Box>
-            </TabPanel>
-            <TabPanel value={tabIndex} index={3}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
-                    {wantToReadBooks.map(item => <BookshelfCard key={item._id} shelfItem={item} onShelfChange={isOwnProfile ? fetchProfileData : null} />)}
-                </Box>
-            </TabPanel>
-        </Box>
-      </Paper>
+          <Box sx={{ p: { xs: 1, sm: 2 } }}>
+              <TabPanel value={tabIndex} index={0}>
+                  {profile.posts?.length > 0 ? ( profile.posts.map(post => <PostCard key={post._id} post={post} />) ) : ( <Typography color="text.secondary" sx={{textAlign: 'center', p:3}}>This user has no posts yet.</Typography>)}
+              </TabPanel>
+              <TabPanel value={tabIndex} index={1}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
+                      {readBooks.map(item => <BookshelfCard key={item._id} shelfItem={item} onShelfChange={isOwnProfile ? fetchProfileData : null} />)}
+                  </Box>
+              </TabPanel>
+              <TabPanel value={tabIndex} index={2}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
+                      {readingBooks.map(item => <BookshelfCard key={item._id} shelfItem={item} onUpdateProgress={isOwnProfile ? handleOpenProgressModal : null} onShelfChange={isOwnProfile ? fetchProfileData : null} />)}
+                  </Box>
+              </TabPanel>
+              <TabPanel value={tabIndex} index={3}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
+                      {wantToReadBooks.map(item => <BookshelfCard key={item._id} shelfItem={item} onShelfChange={isOwnProfile ? fetchProfileData : null} />)}
+                  </Box>
+              </TabPanel>
+          </Box>
+        </Paper>
+      </Box>
       
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>Edit Your Profile</DialogTitle>

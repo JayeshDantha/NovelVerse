@@ -21,6 +21,11 @@ import UserSearchPage from './pages/UserSearchPage';
 import SchedulePage from './pages/schedule/SchedulePage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import BookClubsPage from './pages/BookClubsPage.jsx';
+import CreateBookClubPage from './pages/CreateBookClubPage.jsx';
+import BookClubDetailPage from './pages/BookClubDetailPage.jsx';
+import EditBookClubPage from './pages/EditBookClubPage.jsx';
+import AddBookPage from './pages/AddBookPage.jsx';
 import { AuthContext } from './context/AuthContext.jsx';
 
 // The ThemeProvider is needed for the useMediaQuery hook to work correctly.
@@ -124,6 +129,31 @@ function App() {
             <Route path="/settings" element={
               <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
                 <ProtectedRoute><SettingsPage /></ProtectedRoute>
+              </motion.div>
+            }/>
+            <Route path="/bookclubs" element={
+              <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+                <ProtectedRoute><BookClubsPage /></ProtectedRoute>
+              </motion.div>
+            }/>
+            <Route path="/bookclubs/new" element={
+              <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+                <ProtectedRoute><CreateBookClubPage /></ProtectedRoute>
+              </motion.div>
+            }/>
+            <Route path="/bookclubs/:id" element={
+              <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+                <ProtectedRoute><BookClubDetailPage /></ProtectedRoute>
+              </motion.div>
+            }/>
+            <Route path="/bookclubs/:id/edit" element={
+              <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+                <ProtectedRoute><EditBookClubPage /></ProtectedRoute>
+              </motion.div>
+            }/>
+            <Route path="/add-book" element={
+              <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+                <ProtectedRoute><AddBookPage /></ProtectedRoute>
               </motion.div>
             }/>
           </Routes>

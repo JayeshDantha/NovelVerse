@@ -13,6 +13,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EventIcon from '@mui/icons-material/Event';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import GroupIcon from '@mui/icons-material/Group';
 
 // --- MAIN HEADER COMPONENT ---
 function Header() {
@@ -70,6 +71,7 @@ function Header() {
                   </motion.div>
                 </Tooltip>
                 <Tooltip title="Search Novels"><motion.div whileTap={{ scale: 0.9 }}><IconButton component={Link} to="/search" color="inherit"><MenuBookIcon /></IconButton></motion.div></Tooltip>
+                <Tooltip title="Book Clubs"><motion.div whileTap={{ scale: 0.9 }}><IconButton component={Link} to="/bookclubs" color="inherit"><GroupIcon /></IconButton></motion.div></Tooltip>
               </Box>
               
               {/* Icons for all screen sizes */}

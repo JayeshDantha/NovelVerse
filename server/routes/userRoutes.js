@@ -270,6 +270,31 @@ router.put('/heartbeat', authMiddleware, async (req, res) => {
 
 
 
+// @route   POST /api/users/feedback
+// @desc    Provide negative feedback on a post
+// @access  Private
+router.post('/feedback', authMiddleware, async (req, res) => {
+  const { postId, reason } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Store the feedback in a new field in the user model
+    // We'll need to add this field to the User model
+    user.feedback.push({ postId, reason });
+    await user.save();
+
+    res.status(200).json({ message: 'Feedback received' });
+  } catch (error) {
+    console.error("Feedback error:", error);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   PUT /api/users/:id/follow
 // @desc    Follow or unfollow a user
 // @access  Private (requires login)

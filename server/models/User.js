@@ -65,6 +65,23 @@ const UserSchema = new mongoose.Schema({
     type: Date, 
     default: Date.now 
   },
+  feedback: [
+    {
+      postId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Post'
+      },
+      reason: {
+        type: String,
+        enum: ['not_interested', 'spam', 'offensive'],
+        required: true
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ]
 }, { timestamps: true });
 
 

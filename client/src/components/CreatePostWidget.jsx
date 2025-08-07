@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Typography, TextField, Button, Box, CircularProgress, Autocomplete, FormControl, InputLabel, Select, MenuItem, Grid, Paper, Collapse, IconButton } from '@mui/material';
+import { Typography, TextField, Button, Box, CircularProgress, Autocomplete, FormControl, InputLabel, Select, MenuItem, Grid, Paper, Collapse, IconButton, ListItemButton, ListItemText } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import throttle from 'lodash.throttle';
 import api from '../api/api';
 import { AuthContext } from '../context/AuthContext';
 
-function CreatePostWidget({ onPostSuccess }) {
+function CreatePostWidget({ onPostSuccess, bookClubId }) {
   const { user } = useContext(AuthContext);
   const [content, setContent] = useState('');
   const [selectedNovel, setSelectedNovel] = useState(null);
@@ -60,7 +60,11 @@ function CreatePostWidget({ onPostSuccess }) {
     try {
       const bookshelfRes = await api.post('/books/bookshelf', { status: 'read', bookData: selectedNovel });
       const novelId = bookshelfRes.data.novel._id;
-      await api.post('/posts', { content, novelId, postType });
+      if (bookClubId) {
+        await api.post(`/bookclubs/${bookClubId}/posts`, { content, novelId, postType });
+      } else {
+        await api.post('/posts', { content, novelId, postType });
+      }
 
       setContent('');
       setSelectedNovel(null);
@@ -148,6 +152,14 @@ function CreatePostWidget({ onPostSuccess }) {
                     <Grid item xs><Typography variant="body1">{option.title}</Typography><Typography variant="body2" color="text.secondary">{option.authors?.join(', ')}</Typography></Grid>
                   </Grid>
                 </li>
+              )}
+              ListboxComponent={(props) => (
+                <ul {...props}>
+                  {props.children}
+                  <ListItemButton onClick={() => navigate('/add-book', { state: { searchTerm: inputValue } })}>
+                    <ListItemText primary="Can't find your book? Add it manually." />
+                  </ListItemButton>
+                </ul>
               )}
             />
             <FormControl fullWidth sx={{ mb: 2 }}>

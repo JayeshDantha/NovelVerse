@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Container, Box, Typography, Button, TextField, CircularProgress, Avatar } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/api';
+import axios from 'axios';
 
 function AddBookPage() {
   const navigate = useNavigate();
@@ -19,18 +20,33 @@ function AddBookPage() {
 
     setImagePreview(URL.createObjectURL(file));
 
-    const formData = new FormData();
-    formData.append('image', file);
-
     try {
-      const res = await api.post('/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setCoverImage(res.data.imageUrl);
+      // 1. Get signature from backend
+      console.log('Requesting signature from backend...');
+      const signatureResponse = await api.get('/upload/signature');
+      console.log('Signature response:', signatureResponse.data);
+      const { signature, timestamp, cloudname, apikey } = signatureResponse.data;
+
+      // 2. Upload image directly to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', apikey);
+      formData.append('timestamp', timestamp);
+      formData.append('signature', signature);
+      formData.append('folder', 'NovelVerse_Uploads');
+
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudname}/image/upload`;
+      console.log('Uploading to Cloudinary...');
+      const cloudinaryResponse = await axios.post(cloudinaryUrl, formData);
+      console.log('Cloudinary response:', cloudinaryResponse.data);
+
+      setCoverImage(cloudinaryResponse.data.secure_url);
+      console.log('Set cover image state to:', cloudinaryResponse.data.secure_url);
     } catch (error) {
       console.error('Failed to upload image', error);
+      if (error.response) {
+        console.error('Cloudinary error response:', error.response.data);
+      }
     }
   };
 
@@ -38,7 +54,8 @@ function AddBookPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/books', { title, authors: [author], description, thumbnail: coverImage });
+      console.log('Submitting book with coverImage:', coverImage);
+      await api.post('/books', { title, authors: [author], description, thumbnail: coverImage, coverImage: coverImage });
       navigate(-1); // Go back to the previous page
     } catch (error) {
       console.error('Failed to add book', error);

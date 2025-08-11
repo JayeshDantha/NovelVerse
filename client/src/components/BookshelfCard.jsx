@@ -75,7 +75,7 @@ const BookshelfCard = ({ shelfItem, onUpdateProgress, onShelfChange }) => {
       <CardMedia
         component={Link}
         to={`/book/${novel.googleBooksId}`}
-        image={novel.thumbnail || 'https://placehold.co/128x192/EEE/31343C?text=No+Image'}
+        image={novel.coverImage || novel.thumbnail || 'https://placehold.co/128x192/EEE/31343C?text=No+Image'}
         sx={{ height: 200, backgroundSize: 'cover' }}
       />
       <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2 }}>

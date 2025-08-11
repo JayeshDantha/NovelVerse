@@ -2,6 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 const authMiddleware = require('../middleware/authMiddleware');
 const Novel = require('../models/Novel');
@@ -12,19 +13,25 @@ const User = require('../models/User');
 // @desc    Create a new book
 // @access  Private
 router.post('/', authMiddleware, async (req, res) => {
-  const { title, authors, description, thumbnail } = req.body;
+  const { title, authors, description, thumbnail, coverImage } = req.body;
   try {
+    // For manually added books, we generate a unique ID.
+    const googleBooksId = `custom-${uuidv4()}`;
+
     const newBook = new Novel({
+      googleBooksId,
       title,
       authors,
       description,
       thumbnail,
+      coverImage: coverImage || thumbnail, // Use coverImage, fallback to thumbnail
     });
+    console.log('--- SAVING NEW BOOK ---', newBook);
     const book = await newBook.save();
     res.json(book);
   } catch (error) {
-    console.error(error.message);
-    res.status(500).send('Server Error');
+    console.error('Error creating book:', error);
+    res.status(500).json({ message: 'Failed to create book', error: error.message });
   }
 });
 
@@ -34,32 +41,62 @@ router.get('/search', async (req, res) => {
   if (!query) {
     return res.status(400).json({ message: 'Search query is required' });
   }
-  const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
-  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&key=${apiKey}&maxResults=20`;
 
   try {
-    const response = await axios.get(url);
-    const items = response.data.items || [];
-    const books = items.map(item => {
-        let coverImage = item.volumeInfo.imageLinks?.large || item.volumeInfo.imageLinks?.medium || item.volumeInfo.imageLinks?.thumbnail || item.volumeInfo.imageLinks?.smallThumbnail;
+    // 1. Search Local Database
+    const localBooks = await Novel.find({
+      $or: [
+        { title: { $regex: query, $options: 'i' } },
+        { authors: { $regex: query, $options: 'i' } }
+      ]
+    }).limit(10).lean();
+
+    // 2. Search Google Books API
+    const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&key=${apiKey}&maxResults=20`;
+    const googleBooksResponse = await axios.get(url);
+    const googleBooks = (googleBooksResponse.data.items || [])
+      .map(item => {
+        const volumeInfo = item.volumeInfo;
+        if (!volumeInfo.title) return null;
+        let coverImage = volumeInfo.imageLinks?.large || volumeInfo.imageLinks?.medium || volumeInfo.imageLinks?.thumbnail || volumeInfo.imageLinks?.smallThumbnail;
         if (coverImage) {
           coverImage = coverImage.replace('http://', 'https://');
         }
         return {
           googleBooksId: item.id,
-          title: item.volumeInfo.title,
-          authors: item.volumeInfo.authors || ['N/A'],
-          description: item.volumeInfo.description,
-          pageCount: item.volumeInfo.pageCount,
-          categories: item.volumeInfo.categories,
-          thumbnail: coverImage, 
+          title: volumeInfo.title,
+          authors: volumeInfo.authors || ['N/A'],
+          description: volumeInfo.description,
+          pageCount: volumeInfo.pageCount,
+          categories: volumeInfo.categories,
+          thumbnail: coverImage,
           coverImage: coverImage,
-          publishedDate: item.volumeInfo.publishedDate,
+          publishedDate: volumeInfo.publishedDate,
         };
+      })
+      .filter(Boolean);
+
+    // 3. Combine and De-duplicate
+    const uniqueBooks = new Map();
+
+    // Add local books first to give them priority
+    localBooks.forEach(book => {
+      const key = `${book.title}-${book.authors.join(',')}`;
+      uniqueBooks.set(key, book);
     });
-    res.json(books);
+
+    // Add Google Books only if they don't already exist
+    googleBooks.forEach(book => {
+      const key = `${book.title}-${book.authors.join(',')}`;
+      if (!uniqueBooks.has(key)) {
+        uniqueBooks.set(key, book);
+      }
+    });
+
+    res.json(Array.from(uniqueBooks.values()));
   } catch (error) {
-    console.error('Google Books API Error:', error.message);
+    console.error('Hybrid Book Search Error:', error.message);
     res.status(500).send('Error searching for books');
   }
 });
@@ -94,30 +131,57 @@ router.get('/details/:googleBooksId', async (req, res) => {
 router.get('/view/:googleBooksId', authMiddleware, async (req, res) => {
   const { googleBooksId } = req.params;
   const userId = req.user.id;
+
   try {
-    const [bookDetailsRes, novelInDb] = await Promise.all([
-      axios.get(`https://www.googleapis.com/books/v1/volumes/${googleBooksId}?key=${process.env.GOOGLE_BOOKS_API_KEY}`),
-      Novel.findOne({ googleBooksId: googleBooksId })
-    ]);
-    
+    let bookDetails;
+    let novelInDb;
+
+    if (googleBooksId.startsWith('custom-')) {
+      // It's a custom book, fetch directly from our DB
+      novelInDb = await Novel.findOne({ googleBooksId });
+      if (!novelInDb) {
+        return res.status(404).json({ message: 'Custom book not found' });
+      }
+      bookDetails = {
+        googleBooksId: novelInDb.googleBooksId,
+        title: novelInDb.title,
+        authors: novelInDb.authors,
+        description: novelInDb.description,
+        pageCount: novelInDb.pageCount,
+        categories: novelInDb.categories,
+        thumbnail: novelInDb.thumbnail,
+        coverImage: novelInDb.coverImage,
+        publishedDate: novelInDb.publishedDate,
+      };
+    } else {
+      // It's a Google Book, fetch from API and check our DB
+      const [bookDetailsRes, dbNovel] = await Promise.all([
+        axios.get(`https://www.googleapis.com/books/v1/volumes/${googleBooksId}?key=${process.env.GOOGLE_BOOKS_API_KEY}`),
+        Novel.findOne({ googleBooksId: googleBooksId })
+      ]);
+      
+      novelInDb = dbNovel;
+      const item = bookDetailsRes.data;
+      const volumeInfo = item.volumeInfo;
+      let coverImage = volumeInfo.imageLinks?.large || volumeInfo.imageLinks?.medium || volumeInfo.imageLinks?.thumbnail || volumeInfo.imageLinks?.smallThumbnail;
+      if (coverImage) {
+        coverImage = coverImage.replace('http://', 'https://');
+      }
+      bookDetails = {
+        googleBooksId: item.id, title: volumeInfo.title, subtitle: volumeInfo.subtitle,
+        authors: volumeInfo.authors || ['N/A'], description: volumeInfo.description, pageCount: volumeInfo.pageCount,
+        categories: volumeInfo.categories, coverImage: coverImage, publishedDate: volumeInfo.publishedDate,
+        publisher: volumeInfo.publisher,
+      };
+    }
+
     let shelfItem = null;
     if (novelInDb) {
       shelfItem = await BookshelfItem.findOne({ user: userId, novel: novelInDb._id });
     }
 
-    const item = bookDetailsRes.data;
-    const volumeInfo = item.volumeInfo;
-    let coverImage = volumeInfo.imageLinks?.large || volumeInfo.imageLinks?.medium || volumeInfo.imageLinks?.thumbnail || volumeInfo.imageLinks?.smallThumbnail;
-    if (coverImage) {
-      coverImage = coverImage.replace('http://', 'https://');
-    }
-    const formattedDetails = {
-      googleBooksId: item.id, title: volumeInfo.title, subtitle: volumeInfo.subtitle,
-      authors: volumeInfo.authors || ['N/A'], description: volumeInfo.description, pageCount: volumeInfo.pageCount,
-      categories: volumeInfo.categories, coverImage: coverImage, publishedDate: volumeInfo.publishedDate,
-      publisher: volumeInfo.publisher,
-    };
-    res.json({ bookDetails: formattedDetails, shelfItem: shelfItem });
+    res.json({ bookDetails, shelfItem });
+
   } catch (error) {
     console.error("View Book Error:", error.message);
     res.status(500).send('Error fetching book data');
@@ -168,7 +232,7 @@ router.post('/bookshelf', authMiddleware, async (req, res) => {
 
     if (novel) {
       // --- THIS IS THE NEW, TRULY SELF-HEALING LOGIC ---
-      if (!novel.thumbnail) {
+      if (!novel.thumbnail && !novel.googleBooksId.startsWith('custom-')) {
         console.log(`Novel '${novel.title}' found but is missing an image. Fetching fresh data to repair...`);
         
         // If the novel exists but is missing data, make a fresh API call to Google.

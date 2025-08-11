@@ -18,6 +18,10 @@ const getSocketsForUser = (userId) => {
   return onlineUsers.filter((user) => user.userId === userId);
 };
 
+const getUser = (userId) => {
+  return onlineUsers.find((user) => user.userId === userId);
+};
+
 const getOnlineUsers = () => {
     return onlineUsers;
 }
@@ -27,4 +31,5 @@ module.exports = {
   removeUser,
   getSocketsForUser,
   getOnlineUsers,
+  getUser,
 };

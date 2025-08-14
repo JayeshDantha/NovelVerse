@@ -35,6 +35,13 @@ const NovelSchema = new mongoose.Schema({
   publishedDate: {
     type: String,
   },
+  publisher: {
+    type: String,
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Novel', NovelSchema);

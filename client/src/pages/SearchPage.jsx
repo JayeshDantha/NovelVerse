@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Container, Typography, TextField, Box, Button, CircularProgress, InputAdornment } from '@mui/material';
+import { Link } from 'react-router-dom';
 import api from '../api/api';
 import BookResultCard from '../components/BookResultCard';
 import { AuthContext } from '../context/AuthContext';
@@ -77,6 +78,21 @@ function SearchPage() {
           />
           <Button type="submit" variant="contained" sx={{ borderRadius: '30px', px: 4 }} disabled={loading}>
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Search'}
+          </Button>
+        </Box>
+
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Can't find what you're looking for?
+          </Typography>
+          <Button
+            component={Link}
+            to="/add-book"
+            state={{ searchTerm: query }}
+            variant="outlined"
+            sx={{ mt: 1 }}
+          >
+            Manually Add a Book
           </Button>
         </Box>
 

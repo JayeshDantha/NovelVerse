@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppBar, Toolbar, Typography, Box, Menu, MenuItem, IconButton, Avatar, Tooltip, Divider, Badge } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -21,6 +21,21 @@ function Header() {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const isMenuOpen = Boolean(anchorEl);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    document.addEventListener('scroll', handleScroll);
+    return () => {
+      document.removeEventListener('scroll', handleScroll);
+    };
+  }, [scrolled]);
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
@@ -47,7 +62,17 @@ function Header() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="fixed" sx={{ bgcolor: 'white', color: 'black' }} elevation={1}>
+      <AppBar
+        position="fixed"
+        sx={{
+          bgcolor: scrolled ? 'rgba(255, 255, 255, 0.8)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(10px)' : 'none',
+          boxShadow: scrolled ? '0 2px 10px rgba(0,0,0,0.1)' : 'none',
+          color: 'black',
+          transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+        }}
+        elevation={0}
+      >
         <Toolbar>
           <Typography variant="h5" noWrap component={Link} to="/" sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold' }}>
             Novelfinity

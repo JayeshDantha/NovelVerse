@@ -26,15 +26,13 @@ import CreateBookClubPage from './pages/CreateBookClubPage.jsx';
 import BookClubDetailPage from './pages/BookClubDetailPage.jsx';
 import EditBookClubPage from './pages/EditBookClubPage.jsx';
 import AddBookPage from './pages/AddBookPage.jsx';
+import EditBookPage from './pages/EditBookPage.jsx';
 import { AuthContext } from './context/AuthContext.jsx';
 
 // The ThemeProvider is needed for the useMediaQuery hook to work correctly.
 const AppWrapper = () => {
-    const theme = createTheme();
     return (
-        <ThemeProvider theme={theme}>
-            <App />
-        </ThemeProvider>
+        <App />
     )
 }
 
@@ -154,6 +152,11 @@ function App() {
             <Route path="/add-book" element={
               <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
                 <ProtectedRoute><AddBookPage /></ProtectedRoute>
+              </motion.div>
+            }/>
+            <Route path="/book/:googleBooksId/edit" element={
+              <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+                <ProtectedRoute><EditBookPage /></ProtectedRoute>
               </motion.div>
             }/>
           </Routes>

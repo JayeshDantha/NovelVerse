@@ -13,7 +13,7 @@ const User = require('../models/User');
 // @desc    Create a new book
 // @access  Private
 router.post('/', authMiddleware, async (req, res) => {
-  const { title, authors, description, thumbnail, coverImage } = req.body;
+  const { title, authors, description, thumbnail, coverImage, publisher } = req.body;
   try {
     // For manually added books, we generate a unique ID.
     const googleBooksId = `custom-${uuidv4()}`;
@@ -25,6 +25,8 @@ router.post('/', authMiddleware, async (req, res) => {
       description,
       thumbnail,
       coverImage: coverImage || thumbnail, // Use coverImage, fallback to thumbnail
+      publisher,
+      createdBy: req.user.id,
     });
     console.log('--- SAVING NEW BOOK ---', newBook);
     const book = await newBook.save();
@@ -32,6 +34,64 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error creating book:', error);
     res.status(500).json({ message: 'Failed to create book', error: error.message });
+  }
+});
+
+// @route   PUT /api/books/:googleBooksId
+// @desc    Update a book
+// @access  Private
+router.put('/:googleBooksId', authMiddleware, async (req, res) => {
+  const { googleBooksId } = req.params;
+  const { title, authors, publisher, description } = req.body;
+
+  try {
+    const book = await Novel.findOne({ googleBooksId });
+
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    // Authorization: Only the user who created the book can edit it.
+    if (book.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'User not authorized to edit this book' });
+    }
+
+    // Update fields
+    book.title = title;
+    book.authors = authors.split(',').map(author => author.trim());
+    book.publisher = publisher;
+    book.description = description;
+
+    const updatedBook = await book.save();
+    res.json(updatedBook);
+  } catch (error) {
+    console.error('Error updating book:', error);
+    res.status(500).json({ message: 'Failed to update book', error: error.message });
+  }
+});
+
+// @route   POST /api/books/:googleBooksId/claim
+// @desc    Claim ownership of a book
+// @access  Private
+router.post('/:googleBooksId/claim', authMiddleware, async (req, res) => {
+  const { googleBooksId } = req.params;
+  try {
+    const book = await Novel.findOne({ googleBooksId });
+
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    if (book.createdBy) {
+      return res.status(400).json({ message: 'This book already has an owner.' });
+    }
+
+    book.createdBy = req.user.id;
+    const updatedBook = await book.save();
+    res.json(updatedBook);
+  } catch (error) {
+    console.error('Error claiming book:', error);
+    res.status(500).json({ message: 'Failed to claim book', error: error.message });
   }
 });
 
@@ -43,13 +103,23 @@ router.get('/search', async (req, res) => {
   }
 
   try {
-    // 1. Search Local Database
-    const localBooks = await Novel.find({
-      $or: [
-        { title: { $regex: query, $options: 'i' } },
-        { authors: { $regex: query, $options: 'i' } }
-      ]
-    }).limit(10).lean();
+    // 1. Search Local Database with Atlas Search
+    const localBooks = await Novel.aggregate([
+      {
+        $search: {
+          index: 'default',
+          text: {
+            query: query,
+            path: {
+              wildcard: '*'
+            }
+          }
+        }
+      },
+      {
+        $limit: 10
+      }
+    ]);
 
     // 2. Search Google Books API
     const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
@@ -152,6 +222,8 @@ router.get('/view/:googleBooksId', authMiddleware, async (req, res) => {
         thumbnail: novelInDb.thumbnail,
         coverImage: novelInDb.coverImage,
         publishedDate: novelInDb.publishedDate,
+        publisher: novelInDb.publisher,
+        createdBy: novelInDb.createdBy,
       };
     } else {
       // It's a Google Book, fetch from API and check our DB

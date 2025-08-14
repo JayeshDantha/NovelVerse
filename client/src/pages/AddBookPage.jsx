@@ -9,6 +9,7 @@ function AddBookPage() {
   const location = useLocation();
   const [title, setTitle] = useState(location.state?.searchTerm || '');
   const [author, setAuthor] = useState('');
+  const [publisher, setPublisher] = useState('');
   const [description, setDescription] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,7 +56,7 @@ function AddBookPage() {
     setLoading(true);
     try {
       console.log('Submitting book with coverImage:', coverImage);
-      await api.post('/books', { title, authors: [author], description, thumbnail: coverImage, coverImage: coverImage });
+      await api.post('/books', { title, authors: [author], publisher, description, thumbnail: coverImage, coverImage: coverImage });
       navigate(-1); // Go back to the previous page
     } catch (error) {
       console.error('Failed to add book', error);
@@ -85,6 +86,13 @@ function AddBookPage() {
             onChange={(e) => setAuthor(e.target.value)}
             fullWidth
             required
+            margin="normal"
+          />
+          <TextField
+            label="Publisher"
+            value={publisher}
+            onChange={(e) => setPublisher(e.target.value)}
+            fullWidth
             margin="normal"
           />
           <TextField

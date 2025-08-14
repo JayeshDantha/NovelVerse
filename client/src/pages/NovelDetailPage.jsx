@@ -1,9 +1,10 @@
 // client/src/pages/NovelDetailPage.jsx - FINAL STABLE VERSION
 
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Container, Typography, Box, Grid, CircularProgress, Paper, Button, Menu, MenuItem, Divider } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import EditIcon from '@mui/icons-material/Edit';
 import api from '../api/api';
 import PostCard from '../components/PostCard';
 import { AuthContext } from '../context/AuthContext';
@@ -104,6 +105,16 @@ function NovelDetailPage() {
   };
   const buttonContent = getButtonContent();
 
+  const handleClaimOwnership = async () => {
+    try {
+      const res = await api.post(`/books/${googleBooksId}/claim`);
+      setBook(res.data);
+    } catch (error) {
+      console.error('Failed to claim ownership:', error);
+      alert('Error: Could not claim ownership.');
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ my: 4 }}>
       <Paper elevation={3} sx={{ p: {xs: 2, md: 4}, borderRadius: '16px' }}>
@@ -139,8 +150,30 @@ function NovelDetailPage() {
             <Typography variant="h3" component="h1" gutterBottom>{book.title}</Typography>
             {book.subtitle && <Typography variant="h5" component="h2" color="text.secondary" sx={{mt: -2, mb: 2}}>{book.subtitle}</Typography>}
             <Typography variant="h6" component="p" gutterBottom>by {book.authors.join(', ')}</Typography>
-            <Typography variant="body1" color="text.secondary" gutterBottom>Published by {book.publisher || 'N/A'} on {book.publishedDate || 'N/A'}</Typography>
+            <Typography variant="body1" color="text.secondary" gutterBottom>
+              Published {book.publishedDate ? `on ${book.publishedDate}` : ''} {book.publisher ? `by ${book.publisher}` : ''}
+            </Typography>
             <Typography variant="body1" color="text.secondary" gutterBottom>{book.pageCount ? `${book.pageCount} pages` : ''}</Typography>
+            {user && book.createdBy === user._id && (
+              <Button
+                component={Link}
+                to={`/book/${googleBooksId}/edit`}
+                variant="outlined"
+                startIcon={<EditIcon />}
+                sx={{ mt: 2 }}
+              >
+                Edit Book
+              </Button>
+            )}
+            {user && !book.createdBy && book.googleBooksId.startsWith('custom-') && (
+              <Button
+                variant="contained"
+                onClick={handleClaimOwnership}
+                sx={{ mt: 2 }}
+              >
+                Claim Ownership
+              </Button>
+            )}
             <Box sx={{ my: 3 }}><Typography variant="h6" gutterBottom>Description</Typography><Typography variant="body1" dangerouslySetInnerHTML={{ __html: book.description || 'No description available.' }} /></Box>
           </Grid>
         </Grid>

@@ -38,7 +38,22 @@ function BottomNav() {
   }
 
   return (
-    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1200, borderTop: '1px solid #E0E0E0' }} elevation={0}>
+    <Paper 
+      sx={{ 
+        position: 'fixed', 
+        bottom: 16, 
+        left: '50%', 
+        transform: 'translateX(-50%)',
+        width: 'calc(100% - 32px)',
+        maxWidth: '400px',
+        zIndex: 1200, 
+        borderRadius: '24px',
+        bgcolor: 'rgba(255, 255, 255, 0.7)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      }} 
+      elevation={0}
+    >
       <BottomNavigation
         showLabels
         value={value}
@@ -46,9 +61,14 @@ function BottomNav() {
           setValue(newValue);
         }}
         sx={{
+          bgcolor: 'transparent',
           "& .MuiBottomNavigationAction-root": {
             minWidth: 0,
             flex: 1,
+            color: 'text.secondary',
+            '&.Mui-selected': {
+              color: 'primary.main',
+            },
           },
         }}
       >

@@ -1,15 +1,17 @@
 // client/src/components/PostCard.jsx - FINAL WORKING VERSION
 
 import React, { useState, useContext } from 'react';
-import { Paper, Box, Avatar, Typography, IconButton, Divider } from '@mui/material';
+import { Paper, Box, Avatar, Typography, IconButton, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useSnackbar } from 'notistack';
 import api from '../api/api';
 import { motion } from 'framer-motion';
 
-import { FaHeart, FaRegHeart, FaComment, FaBookmark } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaComment, FaBookmark, FaShare } from 'react-icons/fa';
 import { MdDelete, MdOutlineNotInterested } from 'react-icons/md';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import ShareOptions from './ShareOptions';
 
 const timeSince = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
@@ -26,11 +28,14 @@ const timeSince = (date) => {
     return Math.floor(seconds) + "s";
 };
 
-function PostCard({ post }) {
+function PostCard({ post, onPostDelete }) {
     const { user: currentUser } = useContext(AuthContext);
     const navigate = useNavigate();
+    const { enqueueSnackbar } = useSnackbar();
     const [likes, setLikes] = useState(post.likes || []);
     const [isHidden, setIsHidden] = useState(false);
+    const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+    const [openShareModal, setOpenShareModal] = useState(false);
     
     const isLiked = currentUser ? likes.includes(currentUser.id) : false;
 
@@ -50,15 +55,17 @@ function PostCard({ post }) {
         navigate(`/post/${post._id}`);
     };
 
-    const handleDelete = async (e) => {
-        e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this post?')) {
-            try {
-                await api.delete(`/posts/${post._id}`);
-                window.location.reload();
-            } catch (error) {
-                console.error("Failed to delete post", error);
+    const handleDelete = async () => {
+        setOpenDeleteConfirm(false);
+        try {
+            await api.delete(`/posts/${post._id}`);
+            enqueueSnackbar('Post deleted', { variant: 'info' });
+            if (onPostDelete) {
+                onPostDelete(post._id);
             }
+        } catch (error) {
+            console.error("Failed to delete post", error);
+            enqueueSnackbar('Failed to delete post', { variant: 'error' });
         }
     };
 
@@ -73,8 +80,15 @@ function PostCard({ post }) {
         }
     };
 
+    const handleCopyLink = () => {
+        const link = `${window.location.origin}/post/${post._id}`;
+        navigator.clipboard.writeText(link);
+        enqueueSnackbar('Link copied to clipboard', { variant: 'success' });
+        setOpenShareModal(false);
+    };
+
     if (!post || !post.user || !post.novel || isHidden) {
-        return null; 
+        return null;
     }
 
     const cardVariants = {
@@ -93,10 +107,10 @@ function PostCard({ post }) {
         whileInView="visible"
         viewport={{ once: true, amount: 0.1 }}
     >
-      <Paper 
-          elevation={0} 
-          sx={{ 
-              mb: 2, 
+      <Paper
+          elevation={0}
+          sx={{
+              mb: 2,
               borderRadius: '20px', 
               overflow: 'hidden', 
               border: '1px solid #E0E0E0',
@@ -141,6 +155,21 @@ function PostCard({ post }) {
                 <Typography variant="body1" sx={{ my: 2, whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#333' }}>
                     {post.content}
                 </Typography>
+                {post.imageUrl && (
+                    <Box
+                        component="img"
+                        sx={{
+                            height: 'auto',
+                            width: '100%',
+                            maxHeight: '500px',
+                            borderRadius: '12px',
+                            objectFit: 'cover',
+                            my: 2
+                        }}
+                        alt="Post image"
+                        src={post.imageUrl}
+                    />
+                )}
                 <Box 
                   component={Link} 
                   to={`/book/${post.novel.googleBooksId}`} 
@@ -182,7 +211,7 @@ function PostCard({ post }) {
 
                 {currentUser && currentUser._id === post.user._id ? (
                     <motion.div whileTap={{ scale: 1.2 }} whileHover={{ scale: 1.1 }}>
-                        <IconButton size="small" onClick={handleDelete} sx={{ ml: 'auto' }}>
+                        <IconButton size="small" onClick={() => setOpenDeleteConfirm(true)} sx={{ ml: 'auto' }}>
                             <MdDelete />
                         </IconButton>
                     </motion.div>
@@ -193,9 +222,33 @@ function PostCard({ post }) {
                         </IconButton>
                     </motion.div>
                 )}
+                <motion.div whileTap={{ scale: 1.2 }} whileHover={{ scale: 1.1 }}>
+                    <IconButton size="small" onClick={() => setOpenShareModal(true)}>
+                        <FaShare />
+                    </IconButton>
+                </motion.div>
             </Box>
         </Box>
       </Paper>
+      <Dialog
+        open={openDeleteConfirm}
+        onClose={() => setOpenDeleteConfirm(false)}
+      >
+        <DialogTitle>Delete Post?</DialogTitle>
+        <DialogContent>
+          <Typography>This can’t be undone and it will be removed from your profile, the timeline of any accounts that follow you, and from search results.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteConfirm(false)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={openShareModal}
+        onClose={() => setOpenShareModal(false)}
+      >
+        <ShareOptions onCopyLink={handleCopyLink} />
+      </Dialog>
     </motion.div>
   );
 }

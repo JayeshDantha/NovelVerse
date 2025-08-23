@@ -3,13 +3,15 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Typography, TextField, Button, Box, CircularProgress, Autocomplete, FormControl, InputLabel, Select, MenuItem, Grid, Paper, Collapse, IconButton, ListItemButton, ListItemText } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { PhotoCamera, Clear } from '@mui/icons-material';
+import { useSnackbar } from 'notistack';
 import throttle from 'lodash.throttle';
 import api from '../api/api';
 import { AuthContext } from '../context/AuthContext';
 
 function CreatePostWidget({ onPostSuccess, bookClubId }) {
   const { user } = useContext(AuthContext);
+  const { enqueueSnackbar } = useSnackbar();
   const [content, setContent] = useState('');
   const [selectedNovel, setSelectedNovel] = useState(null);
   const [inputValue, setInputValue] = useState('');
@@ -18,6 +20,9 @@ function CreatePostWidget({ onPostSuccess, bookClubId }) {
   const [postType, setPostType] = useState('review');
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchBookOptions = useMemo(() => throttle(async (request, callback) => {
     try {
@@ -51,31 +56,63 @@ function CreatePostWidget({ onPostSuccess, bookClubId }) {
     return () => { active = false; };
   }, [selectedNovel, inputValue, fetchBookOptions, isExpanded]);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImage(null);
+    setImagePreview('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!content || !selectedNovel) {
-      alert('Please write something and select a novel.');
+      enqueueSnackbar('Please write something and select a novel.', { variant: 'warning' });
       return;
     }
+    setIsSubmitting(true);
     try {
       const bookshelfRes = await api.post('/books/bookshelf', { status: 'read', bookData: selectedNovel });
       const novelId = bookshelfRes.data.novel._id;
+
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('novelId', novelId);
+      formData.append('postType', postType);
+      if (image) {
+        formData.append('image', image);
+      }
+
       if (bookClubId) {
-        await api.post(`/bookclubs/${bookClubId}/posts`, { content, novelId, postType });
+        await api.post(`/bookclubs/${bookClubId}/posts`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
-        await api.post('/posts', { content, novelId, postType });
+        await api.post('/posts', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
 
       setContent('');
       setSelectedNovel(null);
       setOptions([]);
+      setImage(null);
+      setImagePreview('');
       setIsExpanded(false);
       if (onPostSuccess) {
           onPostSuccess();
       }
+      enqueueSnackbar('Post created successfully!', { variant: 'success' });
     } catch (error) {
       console.error('Failed to create post:', error);
-      alert('Error creating post.');
+      enqueueSnackbar('Error creating post.', { variant: 'error' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -170,9 +207,47 @@ function CreatePostWidget({ onPostSuccess, bookClubId }) {
                   <MenuItem value="quote">Quote</MenuItem>
                 </Select>
             </FormControl>
+
+            {imagePreview && (
+              <Box sx={{ mb: 2, position: 'relative' }}>
+                <img src={imagePreview} alt="Preview" style={{ width: '100%', borderRadius: '8px' }} />
+                <IconButton
+                  onClick={removeImage}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    },
+                  }}
+                >
+                  <Clear />
+                </IconButton>
+              </Box>
+            )}
+
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<PhotoCamera />}
+              sx={{ mb: 2 }}
+            >
+              {image ? 'Change Image' : 'Add Image'}
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </Button>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
               <Button onClick={handleCancel} sx={{color: 'text.secondary', fontWeight: 'bold'}}>Cancel</Button>
-              <Button type="submit" variant="contained" sx={{ borderRadius: '999px', px: 3 }}>Post</Button>
+              <Button type="submit" variant="contained" sx={{ borderRadius: '999px', px: 3 }} disabled={isSubmitting}>
+                {isSubmitting ? <CircularProgress size={24} /> : 'Post'}
+              </Button>
             </Box>
           </Box>
         </Collapse>

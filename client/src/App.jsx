@@ -27,6 +27,7 @@ import BookClubDetailPage from './pages/BookClubDetailPage.jsx';
 import EditBookClubPage from './pages/EditBookClubPage.jsx';
 import AddBookPage from './pages/AddBookPage.jsx';
 import EditBookPage from './pages/EditBookPage.jsx';
+import OverviewPage from './pages/OverviewPage.jsx';
 import { AuthContext } from './context/AuthContext.jsx';
 
 // The ThemeProvider is needed for the useMediaQuery hook to work correctly.
@@ -68,6 +69,7 @@ function App() {
             
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/overview" element={<OverviewPage />} />
             
             <Route path="/" element={
               <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>

@@ -50,6 +50,11 @@ function HomePage() {
     setTabIndex(newValue);
   };
 
+  const handlePostDelete = (postId) => {
+    setPosts(posts.filter((post) => post._id !== postId));
+    setFeed(feed.filter((post) => post._id !== postId));
+  };
+
   if (loading) {
     return <CircularProgress sx={{ display: 'block', margin: 'auto', mt: 4 }} />;
   }
@@ -68,14 +73,14 @@ function HomePage() {
 
         <TabPanel value={tabIndex} index={0}>
           {feed.length > 0 ? (
-            feed.map(post => <PostCard key={post._id} post={post} />)
+            feed.map(post => <PostCard key={post._id} post={post} onPostDelete={handlePostDelete} />)
           ) : (
             <Typography>Your personalized feed is empty. Interact with some posts to get started!</Typography>
           )}
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
           {posts.length > 0 ? (
-            posts.map(post => <PostCard key={post._id} post={post} />)
+            posts.map(post => <PostCard key={post._id} post={post} onPostDelete={handlePostDelete} />)
           ) : (
             <Typography>No posts from the users you follow yet.</Typography>
           )}

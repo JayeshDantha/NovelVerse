@@ -205,6 +205,13 @@ function ProfilePage() {
     }
   };
 
+  const handlePostDelete = (postId) => {
+    setProfile(prevProfile => ({
+      ...prevProfile,
+      posts: prevProfile.posts.filter(post => post._id !== postId),
+    }));
+  };
+
   if (loading) return <CircularProgress sx={{ display: 'block', margin: 'auto', mt: 4 }} />;
   if (!profile) return <Typography>User not found.</Typography>;
 
@@ -269,7 +276,7 @@ function ProfilePage() {
 
           <Box sx={{ p: { xs: 1, sm: 2 } }}>
               <TabPanel value={tabIndex} index={0}>
-                  {profile.posts?.length > 0 ? ( profile.posts.map(post => <PostCard key={post._id} post={post} />) ) : ( <Typography color="text.secondary" sx={{textAlign: 'center', p:3}}>This user has no posts yet.</Typography>)}
+                  {profile.posts?.length > 0 ? ( profile.posts.map(post => <PostCard key={post._id} post={post} onPostDelete={handlePostDelete} />) ) : ( <Typography color="text.secondary" sx={{textAlign: 'center', p:3}}>This user has no posts yet.</Typography>)}
               </TabPanel>
               <TabPanel value={tabIndex} index={1}>
                   <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>

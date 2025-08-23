@@ -1,7 +1,7 @@
 // client/src/pages/PostDetailPage.jsx - FINAL CORRECTED VERSION
 
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Typography, Box, CircularProgress, List, Divider } from '@mui/material';
 import PostCard from '../components/PostCard';
 import CommentForm from '../components/CommentForm';
@@ -15,6 +15,7 @@ const socket = io('http://localhost:3001');
 function PostDetailPage() {
   const { postId } = useParams();
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [post, setPost] = useState(null);
   const [commentTree, setCommentTree] = useState([]);
@@ -119,13 +120,17 @@ function PostDetailPage() {
     }
   };
 
+  const handlePostDelete = () => {
+    navigate('/');
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
   if (error) return <Typography color="error" align="center" sx={{ mt: 4 }}>{error}</Typography>;
 
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
-        {post && <PostCard post={post} />}
+        {post && <PostCard post={post} onPostDelete={handlePostDelete} />}
         <Typography variant="h5" component="h2" sx={{ mt: 4, mb: 2 }}>Comments</Typography>
         {user && <CommentForm onCommentSubmit={handleCommentSubmit} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px' }} />}
         <List sx={{ mt: 2 }}>

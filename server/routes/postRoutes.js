@@ -5,6 +5,7 @@ const router = express.Router();
 // --- THE FIX IS HERE ---
 // Reverting to the original middleware import. This resolves the server crash.
 const auth = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const User = require('../models/User');
@@ -52,7 +53,7 @@ router.get('/following', auth, async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const posts = await Post.find({})
+    const posts = await Post.find()
       .sort({ createdAt: -1 })
       .populate('user', populateUserDetails) // <-- FIX APPLIED
       .populate('novel', 'title googleBooksId');
@@ -83,7 +84,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const post = await Post.findById(req.params.id)
+    const post = await Post.findOne({ _id: req.params.id })
       .populate('user', populateUserDetails) // <-- FIX APPLIED
       .populate('novel', 'title googleBooksId');
 
@@ -133,13 +134,15 @@ router.get('/book/:googleBooksId/discussions', async (req, res) => {
 });
 
 // ROUTE 5: CREATE A NEW POST
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
     const { content, novelId, postType } = req.body;
+    const imageUrl = req.file ? req.file.path : '';
+
     if (!content || !novelId || !postType) {
         return res.status(400).json({ message: 'Missing content, novelId, or postType.' });
     }
-    const newPost = new Post({ content, novel: novelId, postType, user: req.user.id });
+    const newPost = new Post({ content, novel: novelId, postType, user: req.user.id, imageUrl });
     let post = await newPost.save();
 
     // --- IMPROVEMENT ---
@@ -204,7 +207,7 @@ router.put('/:id/like', auth, async (req, res) => {
   }
 });
 
-// ROUTE 7: DELETE A POST
+// ROUTE 7: DELETE A POST (SOFT DELETE)
 router.delete('/:id', auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -217,9 +220,6 @@ router.delete('/:id', auth, async (req, res) => {
     if (post.user.toString() !== req.user.id) {
       return res.status(401).json({ message: 'User not authorized' });
     }
-
-    // Delete all comments associated with the post
-    await Comment.deleteMany({ post: req.params.id });
 
     await post.deleteOne();
 

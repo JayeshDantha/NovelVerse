@@ -24,6 +24,10 @@ const postSchema = new Schema({
   required: true,
   enum: ['review', 'discussion', 'quote'] // <-- The corrected list
 },
+  imageUrl: {
+    type: String,
+    default: ''
+  },
   likes: [{
     type: Schema.Types.ObjectId,
     ref: 'User'
@@ -31,7 +35,16 @@ const postSchema = new Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
   }
+});
+
+postSchema.pre(/^find/, function(next) {
+  this.where({ isDeleted: { $ne: true } });
+  next();
 });
 
 const Post = mongoose.model('Post', postSchema);
